@@ -50,12 +50,38 @@ void econ_init(Economy * e)
     }
 }
 
-void firm_update(Firm * f)
+/* fixed outgoings per day. This is assumed to depend on the number of workers */
+float firm_constant_per_day(Firm * f)
 {
-    float products_made = f->labour.productivity * f->labour.time * f->labour.workers;
-    f->production = f->sale_value * products_made;
-    f->capital.variable = f->labour.wage_rate * f->labour.time * f->labour.workers;
-    f->capital.surplus = f->production - (f->capital.variable + (f->capital.constant*f->labour.workers));
+    return f->capital.constant * f->labour.workers;
+}
+
+/* total workers wages per day */
+float firm_variable_labour_per_day(Firm * f)
+{
+    return f->labour.wage_rate * f->labour.time * f->labour.workers;
+}
+
+/* how many products are made per day? */
+float firm_products_made_per_day(Firm * f)
+{
+    return f->labour.productivity * f->labour.time * f->labour.workers;
+}
+
+float firm_sales_income_per_day(Firm * f, float product_sale_value)
+{
+    return product_sale_value * firm_products_made_per_day(f);
+}
+
+/* given a certain expected profit how much can individual products be sold for? */
+float firm_product_sale_value(Firm * f, float surplus)
+{
+    return (surplus + (firm_variable_labour_per_day(f) + firm_constant_per_day(f))) / firm_products_made_per_day(f);
+}
+
+float firm_surplus_per_day(Firm * f)
+{
+    return firm_sales_income_per_day(f,f->sale_value) - (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
 }
 
 void econ_update(Economy * e)
@@ -65,7 +91,7 @@ void econ_update(Economy * e)
 
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
-        firm_update(f);
+        /*firm_update(f);*/
     }
 }
 
