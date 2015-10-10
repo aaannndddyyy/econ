@@ -516,6 +516,8 @@ void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int ind
     Merchant * m = &e->merchant;
     float buy_qty = quantity;
 
+    if (quantity < 1) return;
+
     if (m->stock[product_type] == 0) return;
     if (m->stock[product_type] < buy_qty) {
         buy_qty = m->stock[product_type];
@@ -537,6 +539,8 @@ void firm_buy_raw_material_locally(Firm * f, Economy * e, unsigned int index, fl
     float quantity_available, buy_quantity;
     unsigned int product_type = f->process.raw_material[index];
     Firm * supplier;
+
+    if (quantity < 1) return;
 
     best_index = econ_best_price(e, f, product_type, 1);
     while ((best_index > -1) && (f->capital.surplus > 0) && (quantity > 0)) {
