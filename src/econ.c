@@ -82,9 +82,12 @@ void econ_init(Economy * e)
     unsigned int i;
 
     e->size = MAX_ECONOMY_SIZE/4;
+    e->unemployed = 0;
+    e->population = 0;
     e->bankruptcies = 0;
     for (i = 0; i < e->size; i++) {
         firm_init(&e->firm[i]);
+        e->population += e->firm[i].labour.workers;
     }
 }
 
@@ -117,6 +120,30 @@ float firm_sales_income_per_day(Firm * f, float product_sale_value)
     return product_sale_value * firm_products_made_per_day(f);
 }
 
+float firm_products_which_can_be_made(Firm * f)
+{
+    unsigned int i;
+    float new_products=0;
+
+    /* how many new products can be made with the raw materials? */
+    for (i = 0; i < PROCESS_INPUTS; i++) {
+        if ((new_products==0) || (f->process.raw_material_stock[i] < new_products)) {
+            new_products = f->process.raw_material_stock[i];
+        }
+    }
+    return new_products;
+}
+
+/* how many products can be made and sold in one day, given raw materials */
+float firm_sales_income_per_day_actual(Firm * f, float product_sale_value)
+{
+    float max_products_made = firm_products_made_per_day(f);
+    float potential_products = firm_products_which_can_be_made(f);
+    if (potential_products > max_products_made)
+        return product_sale_value * max_products_made;
+    return product_sale_value * potential_products;
+}
+
 /* given a certain expected profit how much can individual products be sold for? */
 float firm_product_sale_value(Firm * f, float surplus_per_day)
 {
@@ -140,6 +167,12 @@ float firm_necessary_variable_labour_per_day(Firm * f)
 float firm_surplus_per_day(Firm * f)
 {
     return firm_sales_income_per_day(f,f->sale_value) -
+        (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
+}
+
+float firm_surplus_per_day_actual(Firm * f)
+{
+    return firm_sales_income_per_day_actual(f,f->sale_value) -
         (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
 }
 
@@ -216,7 +249,25 @@ float firm_worth(Firm * f)
 
 void firm_update(Firm * f, unsigned int weeks)
 {
-    f->capital.surplus += firm_surplus_per_day(f) * f->labour.days_per_week * weeks;
+    unsigned int i, days;
+    float new_products, products_per_day;
+
+    /* how many days can we go without running out of raw materials ? */
+    days = f->labour.days_per_week * weeks;
+    new_products = firm_products_which_can_be_made(f);
+    products_per_day = firm_products_made_per_day(f);
+    if (products_per_day*days < new_products/products_per_day) {
+        days = (unsigned int)(new_products / products_per_day);
+    }
+
+    f->capital.surplus += firm_surplus_per_day_actual(f) * days;
+    f->process.stock += (products_per_day * days);
+    for (i = 0; i < PROCESS_INPUTS; i++) {
+        f->process.raw_material_stock[i] -= (products_per_day * days);
+        if (f->process.raw_material_stock[i] < 0) {
+            f->process.raw_material_stock[i] = 0;
+        }
+    }
 }
 
 void econ_startups(Economy * e)
@@ -228,6 +279,12 @@ void econ_startups(Economy * e)
         f = &e->firm[i];
         if (firm_defunct(f)) {
             firm_init(f);
+            if (e->unemployed >= f->labour.workers) {
+                e->unemployed -= f->labour.workers;
+            }
+            else {
+                e->population += f->labour.workers;
+            }
         }
     }
     e->bankruptcies=0;
@@ -369,11 +426,38 @@ int econ_best_price(Economy * e, unsigned int product_type)
     return best_index;
 }
 
+void firm_buy_raw_material(Firm * f, Economy * e, unsigned int index, float quantity)
+{
+    int best_index;
+    float quantity_available, buy_quantity;
+    unsigned int product_type = f->process.raw_material[index];
+    Firm * supplier;
+
+    best_index = econ_best_price(e, product_type);
+    while ((best_index > -1) && (f->capital.surplus > 0) && (quantity > 0)) {
+        supplier = &e->firm[best_index];
+        quantity_available = supplier->process.stock;
+        buy_quantity = quantity;
+        if (buy_quantity > quantity_available) buy_quantity = quantity_available;
+        if (buy_quantity*supplier->sale_value > f->capital.surplus) {
+            buy_quantity = f->capital.surplus / supplier->sale_value;
+        }
+
+        f->capital.surplus -= supplier->sale_value * buy_quantity;
+        if (f->capital.surplus < 0) f->capital.surplus = 0;
+        supplier->capital.surplus += supplier->sale_value * buy_quantity;
+        f->process.raw_material_stock[index] += buy_quantity;
+        supplier->process.stock -= buy_quantity;
+        if (supplier->process.stock < 0) supplier->process.stock = 0;
+        quantity -= buy_quantity;
+
+        best_index = econ_best_price(e, product_type);
+    }
+}
+
 void firm_purchasing(Firm * f, Economy * e, unsigned int weeks)
 {
     unsigned int i;
-    Firm * supplier;
-    int best_index;
     float purchases_required;
 
     for (i = 0; i < PROCESS_INPUTS; i++) {
@@ -386,25 +470,8 @@ void firm_purchasing(Firm * f, Economy * e, unsigned int weeks)
             continue;
         }
 
-        best_index = econ_best_price(e, f->process.raw_material[i]);
-        while ((best_index > -1) && (f->capital.surplus > 0) && (purchases_required > 0)) {
-            supplier = &e->firm[best_index];
-            while ((f->capital.surplus > supplier->sale_value) &&
-                   (purchases_required > 0) && (supplier->process.stock > 0)) {
-                f->capital.surplus -= supplier->sale_value;
-                supplier->capital.surplus += supplier->sale_value;
-                f->process.raw_material_stock[i] += 1.00f;
-                supplier->process.stock -= 1.00f;
-                if (supplier->process.stock < 0) supplier->process.stock = 0;
-                purchases_required--;
-            }
-            best_index = econ_best_price(e, f->process.raw_material[i]);
-        }
+        firm_buy_raw_material(f, e, i, purchases_required);
     }
-}
-
-void econ_commodities_market(Economy * e)
-{
 }
 
 void econ_update(Economy * e, unsigned int weeks)
@@ -415,9 +482,9 @@ void econ_update(Economy * e, unsigned int weeks)
     econ_startups(e);
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
+        firm_purchasing(f, e, weeks);
         firm_update(f, weeks);
         firm_strategy(f, e);
-        firm_purchasing(f, e, weeks);
     }
     econ_bankrupt(e);
     econ_mergers(e);
@@ -427,10 +494,16 @@ void econ_update(Economy * e, unsigned int weeks)
 int main(int argc, char* argv[])
 {
     Economy e;
+    unsigned int i;
+
     econ_init(&e);
-    econ_update(&e, 1);
-    printf("Profit: %.2f\n",e.firm[0].capital.surplus);
-    printf("Necessary: %.2f\n",firm_necessary_labour_time(&e.firm[0]));
-    printf("Bankrupt: %d/%d\n",e.bankruptcies,e.size);
+
+    for (i = 0; i < 10; i++)  {
+        econ_update(&e, 1);
+        printf("Profit: %.2f\n",e.firm[0].capital.surplus);
+        printf("Necessary: %.2f\n",firm_necessary_labour_time(&e.firm[0]));
+        printf("Bankrupt: %d/%d\n",e.bankruptcies,e.size);
+        printf("Unemployed: %d/%d\n",e.unemployed,e.population);
+    }
     return 0;
 }

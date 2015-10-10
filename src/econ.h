@@ -98,6 +98,7 @@ typedef struct
 {
     unsigned int size;
     Firm firm[MAX_ECONOMY_SIZE];
+    unsigned int population;
     unsigned int unemployed;
     unsigned int bankruptcies;
 } Economy;
