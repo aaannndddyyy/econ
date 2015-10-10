@@ -74,6 +74,7 @@ typedef struct
     unsigned int workers;
     float wage_rate;
     float productivity;
+	unsigned char is_recruiting;
 } Labour;
 
 typedef struct
@@ -83,7 +84,7 @@ typedef struct
     unsigned int product_type;
 	float stock;
 } Process;
-    
+
 typedef struct
 {
     Capital capital;

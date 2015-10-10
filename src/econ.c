@@ -57,6 +57,7 @@ void firm_init(Firm * f)
     f->labour.productivity = MIN_PRODUCTIVITY +
         ((rand()%10000/10000.0f)*(MAX_PRODUCTIVITY - MIN_PRODUCTIVITY));
     f->labour.workers = INITIAL_WORKERS;
+    f->labour.is_recruiting = 0;
     f->labour.days_per_week =
         (unsigned int)(MIN_DAYS_PER_WEEK +
                        ((rand()%10000/10000.0f)*
@@ -137,6 +138,35 @@ float firm_surplus_per_day(Firm * f)
         (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
 }
 
+void firm_strategy(Firm * f, Economy * e)
+{
+    float possible_surplus;
+    float existing_surplus = firm_surplus_per_day(f);
+
+    if (f->labour.workers == 0) return;
+
+    /* will recruiting more workers increase surplus ? */
+    if (f->labour.workers < MAX_WORKERS) {
+        f->labour.is_recruiting = 0;
+        f->labour.workers++;
+        possible_surplus = firm_surplus_per_day(f);
+        f->labour.workers--;
+        if (possible_surplus > existing_surplus) {
+            f->labour.is_recruiting = 1;
+        }
+    }
+
+    /* will laying off workers increase surplus ? */
+    if ((f->labour.workers > 2) && (f->labour.is_recruiting == 0)) {
+        f->labour.workers--;
+        possible_surplus = firm_surplus_per_day(f);
+        if (possible_surplus <= existing_surplus) {
+            f->labour.workers++;
+            e->unemployed++;
+        }
+    }
+}
+
 float firm_worth(Firm * f)
 {
     return f->capital.surplus + firm_variable_labour_per_day(f) + firm_constant_per_day(f);
@@ -182,6 +212,7 @@ void econ_mergers(Economy * e)
             if (i == j) continue;
             f2 = &e->firm[j];
             if (f2->labour.workers == 0) continue;
+            if (f2->labour.is_recruiting == 0) continue;
             if (f->capital.surplus > firm_worth(f2)) {
                 if (f->labour.workers + f2->labour.workers < MAX_WORKERS) {
                     if (firm_worth(f2) > best) {
@@ -217,11 +248,12 @@ void econ_bankrupt(Economy * e)
 
 void econ_labour_market(Economy * e)
 {
-    unsigned int i, j;
+    unsigned int i, j, max, recruiting=0;
     int best;
     Firm * f, * f2;
     float max_wage;
 
+    /* workers can move between firms */
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
         if (f->labour.workers == 0) continue;
@@ -231,7 +263,7 @@ void econ_labour_market(Economy * e)
             if (i == j) continue;
             f2 = &e->firm[j];
             if (f2->labour.workers == 0) continue;
-            
+
             if ((f2->labour.wage_rate > max_wage) &&
                 (f2->labour.workers < MAX_WORKERS-1)) {
                 max_wage = f2->labour.wage_rate;
@@ -242,8 +274,40 @@ void econ_labour_market(Economy * e)
             f2 = &e->firm[best];
             f->labour.workers--;
             f2->labour.workers++;
+            f2->labour.is_recruiting = 0;
         }
-    }   
+    }
+
+    /* unemployed may be recruited */
+    for (i = 0; i < e->size; i++) {
+        f = &e->firm[i];
+        if (f->labour.workers == 0) continue;
+        if (f->labour.is_recruiting == 1) recruiting++;
+    }
+    if (recruiting > 0) {
+        max = e->unemployed;
+        for (i = 0; i < max; i++) {
+            max_wage = 0;
+            best = -1;
+            for (j = 0; j < e->size; j++) {
+                f = &e->firm[i];
+                if (f->labour.workers == 0) continue;
+                if (f->labour.is_recruiting == 0) continue;
+                if (f->labour.wage_rate > max_wage) {
+                    max_wage = f->labour.wage_rate;
+                    best = (int)j;
+                }
+            }
+            if (best > -1) {
+                f = &e->firm[best];
+                f->labour.workers++;
+                f->labour.is_recruiting = 0;
+                recruiting--;
+                e->unemployed--;
+            }
+            if (recruiting == 0) break;
+        }
+    }
 }
 
 void econ_update(Economy * e)
@@ -255,6 +319,7 @@ void econ_update(Economy * e)
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
         firm_update(f, 1);
+        firm_strategy(f, e);
     }
     econ_bankrupt(e);
     econ_mergers(e);
