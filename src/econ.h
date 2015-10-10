@@ -47,6 +47,7 @@
 #define MAX_WAGE             20.00
 
 #define INITIAL_WORKERS       10
+#define MIN_WORKERS           4
 #define MAX_WORKERS           2000
 
 #define MIN_PRODUCTIVITY      6

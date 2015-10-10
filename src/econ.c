@@ -166,6 +166,7 @@ void firm_strategy(Firm * f, Economy * e)
 {
     float possible_surplus, average_price, original_sale_value;
     float existing_surplus = firm_surplus_per_day(f);
+    unsigned int workers;
 
     if (firm_defunct(f)) return;
 
@@ -182,11 +183,12 @@ void firm_strategy(Firm * f, Economy * e)
 
     /* will laying off workers increase surplus ? */
     if ((f->labour.workers > 2) && (f->labour.is_recruiting == 0)) {
-        f->labour.workers--;
-        possible_surplus = firm_surplus_per_day(f);
-        if (possible_surplus <= existing_surplus) {
-            f->labour.workers++;
-            e->unemployed++;
+        workers = f->labour.workers;
+        while ((firm_surplus_per_day(f) < 0) && (f->labour.workers > MIN_WORKERS)) {
+            f->labour.workers--;
+        }
+        if (f->labour.workers != workers) {
+            e->unemployed += workers - f->labour.workers;
         }
     }
 
