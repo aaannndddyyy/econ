@@ -32,10 +32,33 @@
 #ifndef ECON_H
 #define ECON_H
 
-#define MAX_ECONOMY_SIZE 1024
+#define MAX_ECONOMY_SIZE      1024
+
+#define LABOUR_TIME_TOTAL     0
+#define LABOUR_TIME_NECESSARY 1
+
+#define MIN_WORKING_DAY       8
+#define MAX_WORKING_DAY       12
+
+#define MIN_DAYS_PER_WEEK     4
+#define MAX_DAYS_PER_WEEK     6
+
+#define MIN_WAGE              6.70
+#define MAX_WAGE             20.00
+
+#define INITIAL_WORKERS       10
+#define MAX_WORKERS           2000
+
+#define MIN_PRODUCTIVITY      6
+#define MAX_PRODUCTIVITY      50
+
+#define MAX_PRODUCT_TYPES     4
+#define PROCESS_INPUTS        2
+#define PRODUCT_PRIMITIVE     0
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 typedef struct
 {
@@ -45,7 +68,9 @@ typedef struct
 
 typedef struct
 {
-    float time;
+    unsigned int days_per_week;
+    float time_total;
+    float time_necessary;
     unsigned int workers;
     float wage_rate;
     float productivity;
@@ -53,9 +78,17 @@ typedef struct
 
 typedef struct
 {
+    unsigned int raw_material[PROCESS_INPUTS];
+    float raw_material_stock[PROCESS_INPUTS];
+    unsigned int product_type;
+	float stock;
+} Process;
+    
+typedef struct
+{
     Capital capital;
     Labour labour;
-    float production;
+    Process process;
     float sale_value;
 } Firm;
 
@@ -63,6 +96,8 @@ typedef struct
 {
     unsigned int size;
     Firm firm[MAX_ECONOMY_SIZE];
+    unsigned int unemployed;
+    unsigned int bankruptcies;
 } Economy;
 
 #endif
