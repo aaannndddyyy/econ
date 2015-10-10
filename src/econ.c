@@ -72,6 +72,11 @@ void firm_init(Firm * f)
     f->sale_value = 1.50f;
 }
 
+int firm_defunct(Firm * f)
+{
+    return (f->labour.workers == 0);
+}
+
 void econ_init(Economy * e)
 {
     unsigned int i;
@@ -143,7 +148,7 @@ void firm_strategy(Firm * f, Economy * e)
     float possible_surplus;
     float existing_surplus = firm_surplus_per_day(f);
 
-    if (f->labour.workers == 0) return;
+    if (firm_defunct(f)) return;
 
     /* will recruiting more workers increase surplus ? */
     if (f->labour.workers < MAX_WORKERS) {
@@ -189,7 +194,7 @@ void econ_startups(Economy * e)
 
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
-        if (f->labour.workers == 0) {
+        if (firm_defunct(f)) {
             firm_init(f);
         }
     }
@@ -205,7 +210,7 @@ void econ_mergers(Economy * e)
 
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
-        if (f->labour.workers == 0) continue;
+        if (firm_defunct(f)) continue;
         best_index = -1;
         best = 0;
         for (j = 0; j < e->size; j++) {
@@ -256,7 +261,7 @@ void econ_labour_market(Economy * e)
     /* workers can move between firms */
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
-        if (f->labour.workers == 0) continue;
+        if (firm_defunct(f)) continue;
         max_wage = f->labour.wage_rate;
         best = -1;
         for (j = 0; j < e->size; j++) {
@@ -281,7 +286,7 @@ void econ_labour_market(Economy * e)
     /* unemployed may be recruited */
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
-        if (f->labour.workers == 0) continue;
+        if (firm_defunct(f)) continue;
         if (f->labour.is_recruiting == 1) recruiting++;
     }
     if (recruiting > 0) {
@@ -291,7 +296,7 @@ void econ_labour_market(Economy * e)
             best = -1;
             for (j = 0; j < e->size; j++) {
                 f = &e->firm[i];
-                if (f->labour.workers == 0) continue;
+                if (firm_defunct(f)) continue;
                 if (f->labour.is_recruiting == 0) continue;
                 if (f->labour.wage_rate > max_wage) {
                     max_wage = f->labour.wage_rate;
