@@ -78,6 +78,20 @@ int firm_defunct(Firm * f)
     return (f->labour.workers == 0);
 }
 
+void merchant_init(Merchant * m)
+{
+    unsigned int i;
+
+    m->capital.variable = 0;
+    m->capital.constant = 10;
+    m->capital.surplus = INITIAL_MERCHANT_CREDIT;
+    m->interest_rate = 2;
+    for (i = 0; i < MAX_PRODUCT_TYPES; i++) {
+        m->stock[i] = 0;
+        m->price[i] = 0;
+    }
+}
+
 void econ_init(Economy * e)
 {
     unsigned int i;
@@ -90,6 +104,7 @@ void econ_init(Economy * e)
         firm_init(&e->firm[i]);
         e->population += e->firm[i].labour.workers;
     }
+    merchant_init(&e->merchant);
 }
 
 /* See http://www.cybaea.net/Blogs/employee_productivity.html */
@@ -177,7 +192,31 @@ float firm_surplus_per_day_actual(Firm * f)
         (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
 }
 
-float econ_average_price(Economy * e, unsigned int product_type)
+float econ_average_price(Economy * e, unsigned int product_type, unsigned int location)
+{
+    unsigned int i,hits=0;
+    Firm * f;
+    float average = 0;
+
+    for (i = 0; i < e->size; i++) {
+        f = &e->firm[i];
+        if (firm_defunct(f)) continue;
+        if ((f->process.product_type == product_type) &&
+            (f->process.stock > 0) &&
+            (f->location == location)) {
+            average += f->sale_value*f->process.stock;
+            hits += f->process.stock;
+        }
+    }
+
+    average += e->merchant.price[product_type] * e->merchant.stock[product_type];
+    hits += e->merchant.stock[product_type];
+
+    if (hits > 0) return average / (float)hits;
+    return 0;
+}
+
+float econ_average_price_global(Economy * e, unsigned int product_type)
 {
     unsigned int i,hits=0;
     Firm * f;
@@ -192,11 +231,33 @@ float econ_average_price(Economy * e, unsigned int product_type)
             hits += f->process.stock;
         }
     }
+
     if (hits > 0) return average / (float)hits;
     return 0;
 }
 
-float econ_average_wage(Economy * e)
+float econ_average_price_variance(Economy * e, unsigned int product_type)
+{
+    unsigned int i,hits=0;
+    Firm * f;
+    float average = econ_average_price_global(e, product_type);
+    float variance = 0;
+
+    for (i = 0; i < e->size; i++) {
+        f = &e->firm[i];
+        if (firm_defunct(f)) continue;
+        if ((f->process.product_type == product_type) &&
+            (f->process.stock > 0)) {
+            variance += (f->sale_value - average)*(f->sale_value - average);
+            hits++;
+        }
+    }
+
+    if (hits > 0) return (float)sqrt(average / (float)hits);
+    return 0;
+}
+
+float econ_average_wage(Economy * e, unsigned int location)
 {
     unsigned int i,hits=0;
     Firm * f;
@@ -205,8 +266,10 @@ float econ_average_wage(Economy * e)
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
         if (firm_defunct(f)) continue;
-        average += f->labour.wage_rate;;
-        hits++;
+        if (f->location == location) {
+            average += f->labour.wage_rate;;
+            hits++;
+        }
     }
     if (hits > 0) return average / (float)hits;
     return 0;
@@ -243,7 +306,7 @@ void firm_strategy(Firm * f, Economy * e)
     }
 
     /* increase price if we are below the market average */
-    average_price = econ_average_price(e, f->process.product_type);
+    average_price = econ_average_price(e, f->process.product_type, f->location);
     if (average_price*0.95f > f->sale_value) {
         f->sale_value *= 1.01f;
     }
@@ -422,7 +485,7 @@ void econ_labour_market(Economy * e)
 }
 
 /* returns the index of the firm with the best offering price for a commodity */
-int econ_best_price_local(Economy * e, Firm * f, unsigned int product_type)
+int econ_best_price(Economy * e, Firm * f, unsigned int product_type, unsigned int local)
 {
     unsigned int i;
     int best_index = -1;
@@ -431,9 +494,11 @@ int econ_best_price_local(Economy * e, Firm * f, unsigned int product_type)
 
     for (i = 0; i < e->size; i++) {
         f2 = &e->firm[i];
-        if (f2 == f) continue;
         if (firm_defunct(f2)) continue;
-        if (f2->location != f->location) continue;
+        if (f != NULL) {
+            if (f2 == f) continue;
+            if ((local != 0) && (f2->location != f->location)) continue;
+        }
         if ((f2->process.product_type == product_type) &&
             (f2->process.stock > 0)) {
             if ((best_index == -1) || (f2->sale_value < best)) {
@@ -445,14 +510,35 @@ int econ_best_price_local(Economy * e, Firm * f, unsigned int product_type)
     return best_index;
 }
 
-void firm_buy_raw_material(Firm * f, Economy * e, unsigned int index, float quantity)
+void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int index, float quantity)
+{
+    unsigned int product_type = f->process.raw_material[index];
+    Merchant * m = &e->merchant;
+    float buy_qty = quantity;
+
+    if (m->stock[product_type] == 0) return;
+    if (m->stock[product_type] < buy_qty) {
+        buy_qty = m->stock[product_type];
+    }
+    if (buy_qty * m->price[product_type] > f->capital.surplus) {
+        buy_qty = f->capital.surplus / m->price[product_type];
+    }
+    if (buy_qty < 1) return;
+    m->stock[product_type] -= buy_qty;
+    f->process.raw_material_stock[index] += buy_qty;
+    m->capital.surplus += buy_qty * m->price[product_type];
+    f->capital.surplus -= buy_qty * m->price[product_type];
+    if (f->capital.surplus < 0) f->capital.surplus = 0;
+}
+
+void firm_buy_raw_material_locally(Firm * f, Economy * e, unsigned int index, float quantity)
 {
     int best_index;
     float quantity_available, buy_quantity;
     unsigned int product_type = f->process.raw_material[index];
     Firm * supplier;
 
-    best_index = econ_best_price_local(e, f, product_type);
+    best_index = econ_best_price(e, f, product_type, 1);
     while ((best_index > -1) && (f->capital.surplus > 0) && (quantity > 0)) {
         supplier = &e->firm[best_index];
         quantity_available = supplier->process.stock;
@@ -470,7 +556,7 @@ void firm_buy_raw_material(Firm * f, Economy * e, unsigned int index, float quan
         if (supplier->process.stock < 0) supplier->process.stock = 0;
         quantity -= buy_quantity;
 
-        best_index = econ_best_price_local(e, f, product_type);
+        best_index = econ_best_price(e, f, product_type, 1);
     }
 }
 
@@ -489,8 +575,80 @@ void firm_purchasing(Firm * f, Economy * e, unsigned int weeks)
             continue;
         }
 
-        firm_buy_raw_material(f, e, i, purchases_required);
+        firm_buy_raw_material_from_merchant(f, e, i, purchases_required);
+
+        purchases_required =
+            (firm_products_made_per_day(f) * f->labour.days_per_week * weeks) -
+            f->process.raw_material_stock[i];
+        firm_buy_raw_material_locally(f, e, i, purchases_required);
     }
+}
+
+void merchant_buy(Economy * e)
+{
+    unsigned int i;
+    Merchant * m = &e->merchant;
+    Firm * f;
+    int best_index;
+    float investment_tranche = m->capital.surplus / (float)m->hedge;
+    float buy_qty, target_price, variance, variance_min=0, variance_max=0;
+    float average_variance;
+
+    /* calculate price variance range for all commodities */
+    for (i = 0; i < MAX_PRODUCT_TYPES; i++) {
+        if (m->stock[i] > MAX_MERCHANT_STOCK) continue;
+        variance = econ_average_price_variance(e, i);
+        if ((variance_max == 0) || (variance > variance_max)) {
+            variance_max = variance;
+        }
+        if ((variance_min == 0) || (variance < variance_min)) {
+            variance_min = variance;
+        }
+    }
+
+    average_variance = variance_min + ((variance_max - variance_min)/2);
+    for (i = 0; i < MAX_PRODUCT_TYPES; i++) {
+        if (m->stock[i] > MAX_MERCHANT_STOCK) continue;
+
+        /* prefer high variance trades, where you're
+           likely to obtain the most return */
+        if (econ_average_price_variance(e, i) < average_variance) continue;
+
+        best_index = econ_best_price(e, NULL, i, 0);
+        if (best_index == -1) continue;
+        f = &e->firm[best_index];
+        if (m->price[i] == 0) {
+            m->price[i] =
+                f->sale_value * (1.0f + (m->interest_rate/100.0f));
+        }
+        else {
+            target_price =
+                f->sale_value * (1.0f + (m->interest_rate/100.0f));
+            m->price[i] += (target_price - m->price[i])*0.1f;
+        }
+
+        buy_qty = investment_tranche / f->sale_value;
+        if (buy_qty > 1) {
+            if (buy_qty > f->process.stock) {
+                buy_qty = f->process.stock;
+            }
+            if (m->stock[i] + buy_qty > MAX_MERCHANT_STOCK) {
+                buy_qty = MAX_MERCHANT_STOCK - m->stock[i];
+            }
+            if (buy_qty > 1) {
+                f->process.stock -= buy_qty;
+                if (f->process.stock < 0) f->process.stock = 0;
+                m->stock[i] += buy_qty;
+                m->capital.surplus -= f->sale_value * buy_qty;
+                f->capital.surplus += f->sale_value * buy_qty;
+            }
+        }
+    }
+}
+
+void merchant_update(Economy * e)
+{
+    merchant_buy(e);
 }
 
 void econ_update(Economy * e, unsigned int weeks)
@@ -501,10 +659,12 @@ void econ_update(Economy * e, unsigned int weeks)
     econ_startups(e);
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
+        if (firm_defunct(f)) continue;
         firm_purchasing(f, e, weeks);
         firm_update(f, weeks);
         firm_strategy(f, e);
     }
+    merchant_update(e);
     econ_bankrupt(e);
     econ_mergers(e);
     econ_labour_market(e);

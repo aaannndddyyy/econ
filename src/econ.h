@@ -32,39 +32,43 @@
 #ifndef ECON_H
 #define ECON_H
 
-#define MAX_ECONOMY_SIZE      1024
+#define MAX_ECONOMY_SIZE         1024
 
-#define LABOUR_TIME_TOTAL     0
-#define LABOUR_TIME_NECESSARY 1
+#define LABOUR_TIME_TOTAL        0
+#define LABOUR_TIME_NECESSARY    1
 
-#define MIN_WORKING_DAY       8
-#define MAX_WORKING_DAY       12
+#define MIN_WORKING_DAY          8
+#define MAX_WORKING_DAY          12
 
-#define MIN_DAYS_PER_WEEK     4
-#define MAX_DAYS_PER_WEEK     6
+#define MIN_DAYS_PER_WEEK        4
+#define MAX_DAYS_PER_WEEK        6
 
-#define MIN_WAGE              6.70
-#define MAX_WAGE             20.00
+#define MIN_WAGE                 6.70
+#define MAX_WAGE                20.00
 
-#define INITIAL_WORKERS       10
-#define MIN_WORKERS           4
-#define MAX_WORKERS           2000
+#define INITIAL_WORKERS          10
+#define MIN_WORKERS              4
+#define MAX_WORKERS              2000
 
-#define MIN_PRODUCTIVITY      6
-#define MAX_PRODUCTIVITY      50
+#define MIN_PRODUCTIVITY         6
+#define MAX_PRODUCTIVITY         50
 
-#define MAX_PRODUCT_TYPES     4
-#define PROCESS_INPUTS        2
-#define PRODUCT_PRIMITIVE     0
+#define MAX_PRODUCT_TYPES        4
+#define PROCESS_INPUTS           2
+#define PRODUCT_PRIMITIVE        0
 
-#define INITIAL_CREDIT        10000
+#define INITIAL_CREDIT           10000
+#define INITIAL_MERCHANT_CREDIT  10000
+
+#define MAX_MERCHANT_STOCK       1000
 
 /* number of locations/continents */
-#define LOCATIONS             3
+#define LOCATIONS                3
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 typedef struct
 {
@@ -93,6 +97,15 @@ typedef struct
 
 typedef struct
 {
+    Capital capital;
+    float interest_rate;
+    unsigned int hedge;
+    float stock[MAX_PRODUCT_TYPES];
+    float price[MAX_PRODUCT_TYPES];
+} Merchant;
+
+typedef struct
+{
     unsigned int location;
     Capital capital;
     Labour labour;
@@ -104,6 +117,7 @@ typedef struct
 {
     unsigned int size;
     Firm firm[MAX_ECONOMY_SIZE];
+    Merchant merchant;
     unsigned int population;
     unsigned int unemployed;
     unsigned int bankruptcies;
