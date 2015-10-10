@@ -195,6 +195,22 @@ float econ_average_price(Economy * e, unsigned int product_type)
     return 0;
 }
 
+float econ_average_wage(Economy * e)
+{
+    unsigned int i,hits=0;
+    Firm * f;
+    float average = 0;
+
+    for (i = 0; i < e->size; i++) {
+        f = &e->firm[i];
+        if (firm_defunct(f)) continue;
+        average += f->labour.wage_rate;;
+        hits++;
+    }
+    if (hits > 0) return average / (float)hits;
+    return 0;
+}
+
 void firm_strategy(Firm * f, Economy * e)
 {
     float possible_surplus, average_price, original_sale_value;
@@ -332,6 +348,7 @@ void econ_bankrupt(Economy * e)
 
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
+        if (firm_defunct(f)) continue;
         if (f->capital.surplus < 0) {
             e->unemployed += f->labour.workers;
             f->labour.workers = 0;
