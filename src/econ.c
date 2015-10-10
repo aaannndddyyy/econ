@@ -338,5 +338,6 @@ int main(int argc, char* argv[])
     econ_update(&e);
     printf("Profit: %.2f\n",e.firm[0].capital.surplus);
     printf("Necessary: %.2f\n",firm_necessary_labour_time(&e.firm[0]));
+    printf("Bankrupt: %d/%d\n",e.bankruptcies,e.size);
     return 0;
 }
