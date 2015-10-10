@@ -86,6 +86,7 @@ void merchant_init(Merchant * m)
     m->capital.constant = 10;
     m->capital.surplus = INITIAL_MERCHANT_CREDIT;
     m->interest_rate = 2;
+    m->hedge = MAX_PRODUCT_TYPES/2;
     for (i = 0; i < MAX_PRODUCT_TYPES; i++) {
         m->stock[i] = 0;
         m->price[i] = 0;
