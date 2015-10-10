@@ -48,7 +48,7 @@
 
 #define INITIAL_WORKERS          10
 #define MIN_WORKERS              4
-#define MAX_WORKERS              2000
+#define MAX_WORKERS              1000
 
 #define MIN_PRODUCTIVITY         6
 #define MAX_PRODUCTIVITY         50
@@ -59,8 +59,9 @@
 
 #define INITIAL_CREDIT           10000
 #define INITIAL_MERCHANT_CREDIT  10000
+#define INITIAL_BANK_CREDIT      10000
 
-#define MAX_MERCHANT_STOCK       1000
+#define MAX_MERCHANT_STOCK       100000
 
 /* number of locations/continents */
 #define LOCATIONS                3
@@ -115,9 +116,18 @@ typedef struct
 
 typedef struct
 {
+    Capital capital;
+    float interest_credit;
+    float interest_debt;
+    float balance[MAX_ECONOMY_SIZE+1];
+} Bank;
+
+typedef struct
+{
     unsigned int size;
     Firm firm[MAX_ECONOMY_SIZE];
     Merchant merchant;
+    Bank bank;
     unsigned int population;
     unsigned int unemployed;
     unsigned int bankruptcies;

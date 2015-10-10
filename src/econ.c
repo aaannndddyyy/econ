@@ -93,6 +93,20 @@ void merchant_init(Merchant * m)
     }
 }
 
+void bank_init(Bank * b)
+{
+    unsigned int i;
+
+    b->capital.variable = 0;
+    b->capital.constant = 0;
+    b->capital.surplus = INITIAL_BANK_CREDIT;
+    b->interest_credit = 0.5f;
+    b->interest_debt = 10;
+    for (i = 0; i < MAX_ECONOMY_SIZE+1; i++) {
+        b->balance = 0;
+    }
+}
+
 void econ_init(Economy * e)
 {
     unsigned int i;
@@ -106,6 +120,7 @@ void econ_init(Economy * e)
         e->population += e->firm[i].labour.workers;
     }
     merchant_init(&e->merchant);
+    bank_init(&e->bank);
 }
 
 /* See http://www.cybaea.net/Blogs/employee_productivity.html */
@@ -678,16 +693,21 @@ void econ_update(Economy * e, unsigned int weeks)
 int main(int argc, char* argv[])
 {
     Economy e;
-    unsigned int i;
+    unsigned int i, j;
 
     econ_init(&e);
 
-    for (i = 0; i < 10; i++)  {
+    for (i = 0; i < 100; i++)  {
         econ_update(&e, 1);
         printf("Profit: %.2f\n",e.firm[0].capital.surplus);
         printf("Necessary: %.2f\n",firm_necessary_labour_time(&e.firm[0]));
         printf("Bankrupt: %d/%d\n",e.bankruptcies,e.size);
         printf("Unemployed: %d/%d\n",e.unemployed,e.population);
+        printf("Merchant: ");
+        for (j = 0; j < MAX_PRODUCT_TYPES; j++)  {
+            printf("%d ", (int)e.merchant.stock[j]);
+        }
+        printf("\n");
     }
     return 0;
 }
