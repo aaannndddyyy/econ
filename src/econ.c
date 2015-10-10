@@ -103,7 +103,7 @@ void bank_init(Bank * b)
     b->interest_credit = 0.5f;
     b->interest_debt = 10;
     for (i = 0; i < MAX_ECONOMY_SIZE+1; i++) {
-        b->balance = 0;
+        b->balance[i] = 0;
     }
 }
 
