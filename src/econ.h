@@ -59,6 +59,9 @@
 
 #define INITIAL_CREDIT        10000
 
+/* number of locations/continents */
+#define LOCATIONS             3
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -77,7 +80,7 @@ typedef struct
     unsigned int workers;
     float wage_rate;
     float productivity;
-	unsigned char is_recruiting;
+    unsigned char is_recruiting;
 } Labour;
 
 typedef struct
@@ -85,11 +88,12 @@ typedef struct
     unsigned int raw_material[PROCESS_INPUTS];
     float raw_material_stock[PROCESS_INPUTS];
     unsigned int product_type;
-	float stock;
+    float stock;
 } Process;
 
 typedef struct
 {
+    unsigned int location;
     Capital capital;
     Labour labour;
     Process process;

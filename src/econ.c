@@ -52,6 +52,7 @@ void firm_init_process(Firm * f)
 void firm_init(Firm * f)
 {
     firm_init_process(f);
+    f->location = (unsigned int)(rand()%LOCATIONS);
     f->labour.wage_rate = MIN_WAGE +
         ((rand()%10000/10000.0f)*(MAX_WAGE - MIN_WAGE));
     f->labour.productivity = MIN_PRODUCTIVITY +
@@ -81,7 +82,7 @@ void econ_init(Economy * e)
 {
     unsigned int i;
 
-    e->size = MAX_ECONOMY_SIZE/4;
+    e->size = MAX_ECONOMY_SIZE;
     e->unemployed = 0;
     e->population = 0;
     e->bankruptcies = 0;
@@ -291,19 +292,18 @@ void econ_startups(Economy * e)
     unsigned int i;
     Firm * f;
 
+    if (e->unemployed < INITIAL_WORKERS) return;
+
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
         if (firm_defunct(f)) {
-            firm_init(f);
-            if (e->unemployed >= f->labour.workers) {
+            if (e->unemployed >= INITIAL_WORKERS) {
+                firm_init(f);
                 e->unemployed -= f->labour.workers;
-            }
-            else {
-                e->population += f->labour.workers;
+                if (e->bankruptcies > 0) e->bankruptcies--;
             }
         }
     }
-    e->bankruptcies=0;
 }
 
 void econ_mergers(Economy * e)
@@ -322,7 +322,7 @@ void econ_mergers(Economy * e)
             if (i == j) continue;
             f2 = &e->firm[j];
             if (f2->labour.workers == 0) continue;
-            if (f2->labour.is_recruiting == 0) continue;
+            if (f2->location != f->location) continue;
             if (f->capital.surplus > firm_worth(f2)) {
                 if (f->labour.workers + f2->labour.workers < MAX_WORKERS) {
                     if (firm_worth(f2) > best) {
@@ -422,20 +422,22 @@ void econ_labour_market(Economy * e)
 }
 
 /* returns the index of the firm with the best offering price for a commodity */
-int econ_best_price(Economy * e, unsigned int product_type)
+int econ_best_price_local(Economy * e, Firm * f, unsigned int product_type)
 {
     unsigned int i;
     int best_index = -1;
-    Firm * f;
+    Firm * f2;
     float best = 0;
 
     for (i = 0; i < e->size; i++) {
-        f = &e->firm[i];
-        if (firm_defunct(f)) continue;
-        if ((f->process.product_type == product_type) &&
-            (f->process.stock > 0)) {
-            if ((best_index == -1) || (f->sale_value < best)) {
-                best = f->sale_value;
+        f2 = &e->firm[i];
+        if (f2 == f) continue;
+        if (firm_defunct(f2)) continue;
+        if (f2->location != f->location) continue;
+        if ((f2->process.product_type == product_type) &&
+            (f2->process.stock > 0)) {
+            if ((best_index == -1) || (f2->sale_value < best)) {
+                best = f2->sale_value;
                 best_index = i;
             }
         }
@@ -450,7 +452,7 @@ void firm_buy_raw_material(Firm * f, Economy * e, unsigned int index, float quan
     unsigned int product_type = f->process.raw_material[index];
     Firm * supplier;
 
-    best_index = econ_best_price(e, product_type);
+    best_index = econ_best_price_local(e, f, product_type);
     while ((best_index > -1) && (f->capital.surplus > 0) && (quantity > 0)) {
         supplier = &e->firm[best_index];
         quantity_available = supplier->process.stock;
@@ -468,7 +470,7 @@ void firm_buy_raw_material(Firm * f, Economy * e, unsigned int index, float quan
         if (supplier->process.stock < 0) supplier->process.stock = 0;
         quantity -= buy_quantity;
 
-        best_index = econ_best_price(e, product_type);
+        best_index = econ_best_price_local(e, f, product_type);
     }
 }
 
