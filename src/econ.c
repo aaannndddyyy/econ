@@ -143,9 +143,28 @@ float firm_surplus_per_day(Firm * f)
         (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
 }
 
+float econ_average_price(Economy * e, unsigned int product_type)
+{
+    unsigned int i,hits=0;
+    Firm * f;
+    float average = 0;
+
+    for (i = 0; i < e->size; i++) {
+        f = &e->firm[i];
+        if (firm_defunct(f)) continue;
+        if ((f->process.product_type == product_type) &&
+            (f->process.stock > 0)) {
+            average += f->sale_value*f->process.stock;
+            hits += f->process.stock;
+        }
+    }
+    if (hits > 0) return average / (float)hits;
+    return 0;
+}
+
 void firm_strategy(Firm * f, Economy * e)
 {
-    float possible_surplus;
+    float possible_surplus, average_price, original_sale_value;
     float existing_surplus = firm_surplus_per_day(f);
 
     if (firm_defunct(f)) return;
@@ -168,6 +187,22 @@ void firm_strategy(Firm * f, Economy * e)
         if (possible_surplus <= existing_surplus) {
             f->labour.workers++;
             e->unemployed++;
+        }
+    }
+
+    /* increase price if we are below the market average */
+    average_price = econ_average_price(e, f->process.product_type);
+    if (average_price*0.95f > f->sale_value) {
+        f->sale_value *= 1.01f;
+    }
+
+    /* if the sale price can be made more competitive without
+       making a loss then decrease the sale value */
+    if (average_price*1.05f < f->sale_value) {
+        original_sale_value = f->sale_value;
+        f->sale_value *= 0.99f;
+        if (firm_surplus_per_day(f) <= 0) {
+            f->sale_value = original_sale_value;
         }
     }
 }
@@ -313,6 +348,32 @@ void econ_labour_market(Economy * e)
             if (recruiting == 0) break;
         }
     }
+}
+
+/* returns the index of the firm with the best offering price for a commodity */
+int econ_best_price(Economy * e, unsigned int product_type)
+{
+    unsigned int i;
+    int best_index = -1;
+    Firm * f;
+    float best = 0;
+
+    for (i = 0; i < e->size; i++) {
+        f = &e->firm[i];
+        if (firm_defunct(f)) continue;
+        if ((f->process.product_type == product_type) &&
+            (f->process.stock > 0)) {
+            if ((best_index == -1) || (f->sale_value < best)) {
+                best = f->sale_value;
+                best_index = i;
+            }
+        }
+    }
+    return best_index;
+}
+
+void econ_commodities_market(Economy * e)
+{
 }
 
 void econ_update(Economy * e)
