@@ -57,6 +57,8 @@
 #define PROCESS_INPUTS        2
 #define PRODUCT_PRIMITIVE     0
 
+#define INITIAL_CREDIT        10000
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

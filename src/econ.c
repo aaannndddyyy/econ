@@ -68,7 +68,7 @@ void firm_init(Firm * f)
     f->labour.time_necessary = f->labour.time_total/2;
     f->capital.variable = 0;
     f->capital.constant = 10;
-    f->capital.surplus = 0;
+    f->capital.surplus = INITIAL_CREDIT;
     f->sale_value = 1.50f;
 }
 
