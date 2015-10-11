@@ -143,6 +143,7 @@ typedef struct
     Capital capital;
     float interest_credit;
     float interest_loan;
+    unsigned int active_accounts;
     Account account[MAX_ACCOUNTS];
 } Bank;
 

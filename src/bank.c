@@ -44,6 +44,7 @@ void bank_init(Bank * b)
     b->interest_loan =
         b->interest_credit +
         ((rand()%10000/10000.0)*(MAX_LOAN_INTEREST - b->interest_credit));
+    b->active_accounts = 0;
     for (i = 0; i < MAX_ACCOUNTS; i++) {
         b->account[i].entity_type = ENTITY_NONE;
         b->account[i].entity_index = 0;
