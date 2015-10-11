@@ -192,10 +192,8 @@ void bank_account_update(Bank * b, Economy * e, unsigned int account_index, unsi
     if (a->loan > 0) {
         a->loan_elapsed_days += increment_days;
 
-        /* repay */
         bank_loan_repay(b, e, a, increment_days);
 
-        /* has the loan been fully repaid ? */
         if (a->loan_repaid >= bank_loan_due(a)) {
             bank_loan_close(b, e, a);
         }
