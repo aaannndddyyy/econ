@@ -186,7 +186,7 @@ void bank_update(Bank * b, Economy * e, unsigned int increment_days);
 void bank_issue_loan(Bank * b, Economy * e,
                      unsigned int entity_type, unsigned int entity_index,
                      float amount, unsigned int repayment_days);
-void bank_loan_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index);
+void bank_account_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index);
 float bank_average_interest_loan(Economy * e);
 float bank_average_interest_deposit(Economy * e);
 

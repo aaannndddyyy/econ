@@ -192,11 +192,9 @@ void bank_loan_close(Bank * b, Economy * e, Account * a)
     a->loan = 0;
     a->loan_repaid = 0;
     a->loan_repayment_per_month = 0;
-    a->entity_index = ENTITY_NONE;
-    a->entity_index = 0;
 }
 
-void bank_loan_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index)
+void bank_account_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index)
 {
     Account * a;
     unsigned int i;
@@ -207,6 +205,9 @@ void bank_loan_close_entity(Bank * b, Economy * e, unsigned int entity_type, uns
         if ((a->entity_type == entity_type) &&
             (a->entity_index == entity_index)) {
             bank_loan_close(b, e, a);
+            a->entity_index = ENTITY_NONE;
+            a->entity_index = 0;
+            b->active_accounts--;
         }
     }
 }
@@ -310,6 +311,7 @@ void bank_strategy(Bank * b, Economy * e)
 void bank_update(Bank * b, Economy * e, unsigned int increment_days)
 {
     unsigned int i;
+    Account * a;
 
     if (bank_defunct(b)) return;
 
@@ -321,7 +323,8 @@ void bank_update(Bank * b, Economy * e, unsigned int increment_days)
 
     if (bank_defunct(b)) {
         for (i = 0; i < MAX_ACCOUNTS; i++) {
-            bank_loan_close(b, e, &b->account[i]);
+            a = &b->account[i];
+            bank_account_close_entity(b, e, a->entity_type, a->entity_index);
         }
         e->bankruptcies++;
     }

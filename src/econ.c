@@ -203,7 +203,7 @@ void econ_close_bank_account(Economy * e, unsigned int entity_type, unsigned int
     for (i = 0; i < MAX_BANKS; i++) {
         b = &e->bank[i];
         if (bank_defunct(b)) continue;
-        bank_loan_close_entity(b, e, entity_type, entity_index);
+        bank_account_close_entity(b, e, entity_type, entity_index);
     }
 }
 
@@ -326,6 +326,9 @@ void econ_update(Economy * e, unsigned int weeks)
         f = &e->firm[i];
         if (firm_defunct(f)) continue;
         firm_update(f, e, weeks);
+    }
+    for (i = 0; i < MAX_BANKS; i++) {
+        bank_update(&e->bank[i], e, weeks * 5);
     }
     merchant_update(e);
     econ_bankrupt(e);
