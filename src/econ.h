@@ -133,4 +133,19 @@ typedef struct
     unsigned int bankruptcies;
 } Economy;
 
+float econ_average_price(Economy * e, unsigned int product_type, unsigned int location);
+float econ_average_price_global(Economy * e, unsigned int product_type);
+int econ_best_price(Economy * e, Firm * f, unsigned int product_type, unsigned int local);
+float econ_average_price_variance(Economy * e, unsigned int product_type);
+
+void firm_init(Firm * f);
+int firm_defunct(Firm * f);
+float firm_worth(Firm * f);
+void firm_update(Firm * f, Economy * e, unsigned int weeks);
+
+void merchant_init(Merchant * m);
+void merchant_update(Economy * e);
+
+void bank_init(Bank * b);
+
 #endif
