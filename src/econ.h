@@ -64,6 +64,10 @@
 #define MAX_MERCHANT_STOCK       100000
 #define MAX_BANKS                100
 #define MAX_ACCOUNTS             (MAX_ECONOMY_SIZE/4)
+#define MIN_BANK_INTEREST        0
+#define MAX_BANK_INTEREST        30
+#define MIN_LOAN_INTEREST        0
+#define MAX_LOAN_INTEREST        30
 
 /* number of locations/continents */
 #define LOCATIONS                3

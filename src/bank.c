@@ -38,8 +38,12 @@ void bank_init(Bank * b)
     b->capital.variable = 0;
     b->capital.constant = 0;
     b->capital.surplus = INITIAL_BANK_CREDIT;
-    b->interest_credit = 0.5f;
-    b->interest_loan = 10;
+    b->interest_credit =
+        MIN_BANK_INTEREST +
+        ((rand()%10000/10000.0)*(MAX_BANK_INTEREST - MIN_BANK_INTEREST));
+    b->interest_loan =
+        b->interest_credit +
+        ((rand()%10000/10000.0)*(MAX_LOAN_INTEREST - b->interest_credit));
     for (i = 0; i < MAX_ACCOUNTS; i++) {
         b->account[i].entity_type = ENTITY_NONE;
         b->account[i].entity_index = 0;
