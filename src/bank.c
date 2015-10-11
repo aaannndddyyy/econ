@@ -67,9 +67,23 @@ int bank_account_defunct(Account * a)
     return (a->entity_index == ENTITY_NONE);
 }
 
+float bank_worth(Bank * b)
+{
+    unsigned int i;
+    Account * a;
+    float total = b->capital.surplus;
+
+    for (i = 0; i < MAX_ACCOUNTS; i++) {
+        a = &b->account[i];
+        if (bank_account_defunct(a)) continue;
+        total += a->loan - a->balance;
+    }
+    return total;
+}
+
 int bank_defunct(Bank * b)
 {
-    return (b->capital.surplus < 0);
+    return (bank_worth(b) < 0);
 }
 
 int bank_account_index(Bank * b, unsigned int entity_type, unsigned int entity_index)
@@ -274,6 +288,25 @@ float bank_average_interest_deposit(Economy * e)
     return average;
 }
 
+void bank_strategy(Bank * b, Economy * e)
+{
+    float average = bank_average_interest_loan(e);
+    if (b->interest_loan > average * 1.05f) {
+        b->interest_loan *= 0.99f;
+    }
+    if (b->interest_loan < average * 0.95f) {
+        b->interest_loan *= 1.01f;
+    }
+
+    average = bank_average_interest_loan(e);
+    if (b->interest_deposit > average * 1.05f) {
+        b->interest_deposit *= 0.99f;
+    }
+    if (b->interest_deposit < average * 0.95f) {
+        b->interest_deposit *= 1.01f;
+    }
+}
+
 void bank_update(Bank * b, Economy * e, unsigned int increment_days)
 {
     unsigned int i;
@@ -284,7 +317,8 @@ void bank_update(Bank * b, Economy * e, unsigned int increment_days)
         bank_account_update(b, e, i, increment_days);
     }
 
-    /* NOTE: just looking for surplus < 0 may be incorrect */
+    bank_strategy(b, e);
+
     if (bank_defunct(b)) {
         for (i = 0; i < MAX_ACCOUNTS; i++) {
             bank_loan_close(b, e, &b->account[i]);

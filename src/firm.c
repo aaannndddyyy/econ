@@ -67,6 +67,8 @@ void firm_init(Firm * f)
         MIN_WORKING_DAY +
         ((rand()%10000/10000.0f)*(MAX_WORKING_DAY - MIN_WORKING_DAY));
     f->labour.time_necessary = f->labour.time_total/2;
+    f->capital.savings_rate = MIN_SAVINGS_RATE +
+        ((rand()%10000/10000.0f)*(MAX_SAVINGS_RATE - MIN_SAVINGS_RATE));
     f->capital.repayment_per_month = 0;
     f->capital.variable = 0;
     f->capital.constant = 10;
@@ -193,6 +195,23 @@ Bank * firm_best_bank_for_loan(Firm * f, Economy * e)
         if (bank_defunct(b)) continue;
         if ((best == NULL) || (b->interest_loan < min_interest_rate)) {
             min_interest_rate = b->interest_loan;
+            best = b;
+        }
+    }
+    return best;
+}
+
+Bank * firm_best_bank_for_savings(Firm * f, Economy * e)
+{
+    unsigned int i;
+    Bank * b, * best = NULL;
+    float max_interest_rate = 0;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        if ((best == NULL) || (b->interest_deposit > max_interest_rate)) {
+            max_interest_rate = b->interest_deposit;
             best = b;
         }
     }

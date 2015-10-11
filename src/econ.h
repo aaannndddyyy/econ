@@ -69,6 +69,9 @@
 #define MIN_LOAN_INTEREST        0
 #define MAX_LOAN_INTEREST        30
 
+#define MIN_SAVINGS_RATE         0
+#define MAX_SAVINGS_RATE         10
+
 /* number of locations/continents */
 #define LOCATIONS                3
 
@@ -90,6 +93,7 @@ typedef struct
     float repayment_per_month;
     float variable, constant;
     float surplus;
+    float savings_rate;
 } Capital;
 
 typedef struct
