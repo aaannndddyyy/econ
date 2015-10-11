@@ -169,6 +169,58 @@ float firm_surplus_per_day_actual(Firm * f)
         (firm_variable_labour_per_day(f) + firm_constant_per_day(f) + firm_loan_repayment_per_day(f));
 }
 
+int firm_index(Firm * f, Economy * e)
+{
+    unsigned int i;
+    Firm * f2;
+
+    for (i = 0; i < e->size; i++) {
+        f2 = &e->firm[i];
+        if (f2 == f) return (int)i;
+    }
+    return -1;
+}
+
+/* what is the best bank to obtain a loan from ? */
+Bank * firm_best_bank_for_loan(Firm * f, Economy * e)
+{
+    unsigned int i;
+    Bank * b, * best = NULL;
+    float min_interest_rate = 0;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        if ((best == NULL) || (b->interest_loan < min_interest_rate)) {
+            min_interest_rate = b->interest_loan;
+            best = b;
+        }
+    }
+    return best;
+}
+
+void firm_obtain_loan(Firm * f, Economy * e)
+{
+    Bank * best;
+    float amount;
+    unsigned int repayment_days;
+    int index;
+
+    if (f->capital.repayment_per_month == 0) {
+        best = firm_best_bank_for_loan(f, e);
+        if (best != NULL) {
+            repayment_days = 30*6;
+            amount = firm_surplus_per_day(f) * repayment_days;
+            index = firm_index(f, e);
+            if (index > -1) {
+                bank_issue_loan(best, e, ENTITY_FIRM,
+                                (unsigned int)index,
+                                amount, repayment_days);
+            }
+        }
+    }
+}
+
 void firm_strategy(Firm * f, Economy * e)
 {
     float possible_surplus, average_price, original_sale_value;
@@ -176,6 +228,10 @@ void firm_strategy(Firm * f, Economy * e)
     unsigned int workers;
 
     if (firm_defunct(f)) return;
+
+    if (existing_surplus < 0) {
+        firm_obtain_loan(f, e);
+    }
 
     /* will recruiting more workers increase surplus ? */
     if (f->labour.workers < MAX_WORKERS) {

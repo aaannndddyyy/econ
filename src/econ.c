@@ -136,6 +136,7 @@ void econ_startups(Economy * e)
 {
     unsigned int i;
     Firm * f;
+    Bank * b;
 
     if (e->unemployed < INITIAL_WORKERS) return;
 
@@ -147,6 +148,14 @@ void econ_startups(Economy * e)
                 e->unemployed -= f->labour.workers;
                 if (e->bankruptcies > 0) e->bankruptcies--;
             }
+        }
+    }
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) {
+            bank_init(b);
+            if (e->bankruptcies > 0) e->bankruptcies--;
         }
     }
 }
@@ -186,6 +195,18 @@ void econ_mergers(Economy * e)
     }
 }
 
+void econ_close_bank_account(Economy * e, unsigned int entity_type, unsigned int entity_index)
+{
+    unsigned int i;
+    Bank * b;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        bank_loan_close_entity(b, e, entity_type, entity_index);
+    }
+}
+
 void econ_bankrupt(Economy * e)
 {
     unsigned int i;
@@ -195,6 +216,9 @@ void econ_bankrupt(Economy * e)
         f = &e->firm[i];
         if (firm_defunct(f)) continue;
         if (f->capital.surplus < 0) {
+            if (f->capital.repayment_per_month > 0) {
+                econ_close_bank_account(e, ENTITY_FIRM, i);
+            }
             e->unemployed += f->labour.workers;
             f->labour.workers = 0;
             e->bankruptcies++;

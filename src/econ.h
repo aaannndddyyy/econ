@@ -175,11 +175,13 @@ void merchant_init(Merchant * m);
 void merchant_update(Economy * e);
 
 void bank_init(Bank * b);
+int bank_defunct(Bank * b);
 int bank_account_defunct(Account * a);
 int bank_account_index(Bank * b, unsigned int entity_type, unsigned int entity_index);
 void bank_update(Bank * b, Economy * e, unsigned int increment_days);
 void bank_issue_loan(Bank * b, Economy * e,
                      unsigned int entity_type, unsigned int entity_index,
                      float amount, unsigned int repayment_days);
+void bank_loan_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index);
 
 #endif

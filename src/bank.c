@@ -63,6 +63,11 @@ int bank_account_defunct(Account * a)
     return (a->entity_index == ENTITY_NONE);
 }
 
+int bank_defunct(Bank * b)
+{
+    return (b->capital.surplus < 0);
+}
+
 int bank_account_index(Bank * b, unsigned int entity_type, unsigned int entity_index)
 {
     unsigned int i;
@@ -122,7 +127,7 @@ void bank_issue_loan(Bank * b, Economy * e,
 
     b->account[account_index].entity_type = entity_type;
     b->account[account_index].entity_index = entity_index;
-    b->account[account_index].balance += amount;
+    b->account[account_index].balance = 0;
     b->account[account_index].loan = amount;
     b->account[account_index].loan_interest_rate = b->interest_loan;
     b->account[account_index].loan_elapsed_days = 0;
@@ -133,10 +138,14 @@ void bank_issue_loan(Bank * b, Economy * e,
     case ENTITY_FIRM: {
         firm_borrowing = &e->firm[entity_index];
         firm_borrowing->capital.repayment_per_month = repayment_per_month;
+        firm_borrowing->capital.surplus += amount;
+        break;
     }
     case ENTITY_BANK: {
         bank_borrowing = &e->bank[entity_index];
         bank_borrowing->capital.repayment_per_month = repayment_per_month;
+        bank_borrowing->capital.surplus += amount;
+        break;
     }
     }
 }
@@ -146,18 +155,40 @@ void bank_loan_close(Bank * b, Economy * e, Account * a)
     Firm * firm_borrowing;
     Bank * bank_borrowing;
 
-    a->loan = 0;
-    a->loan_repaid = 0;
-    a->loan_repayment_per_month = 0;
+    if (bank_account_defunct(a)) return;
+
     switch(a->entity_type) {
     case ENTITY_FIRM: {
         firm_borrowing = &e->firm[a->entity_index];
         firm_borrowing->capital.repayment_per_month = 0;
+        break;
     }
     case ENTITY_BANK: {
         bank_borrowing = &e->bank[a->entity_index];
         bank_borrowing->capital.repayment_per_month = 0;
+        break;
     }
+    }
+
+    a->loan = 0;
+    a->loan_repaid = 0;
+    a->loan_repayment_per_month = 0;
+    a->entity_index = ENTITY_NONE;
+    a->entity_index = 0;
+}
+
+void bank_loan_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index)
+{
+    Account * a;
+    unsigned int i;
+
+    for (i = 0; i < MAX_ACCOUNTS; i++) {
+        a = &b->account[i];
+        if (bank_account_defunct(a)) continue;
+        if ((a->entity_type == entity_type) &&
+            (a->entity_index == entity_index)) {
+            bank_loan_close(b, e, a);
+        }
     }
 }
 
@@ -171,10 +202,12 @@ void bank_loan_repay(Bank * b, Economy * e, Account * a, unsigned int increment_
     case ENTITY_FIRM: {
         firm_borrowing = &e->firm[a->entity_index];
         firm_borrowing->capital.surplus -= repayment;
+        break;
     }
     case ENTITY_BANK: {
         bank_borrowing = &e->bank[a->entity_index];
         bank_borrowing->capital.surplus -= repayment;
+        break;
     }
     }
     a->loan_repaid += repayment;
@@ -204,7 +237,16 @@ void bank_update(Bank * b, Economy * e, unsigned int increment_days)
 {
     unsigned int i;
 
+    if (bank_defunct(b)) return;
+
     for (i = 0; i < MAX_ACCOUNTS; i++) {
         bank_account_update(b, e, i, increment_days);
+    }
+
+    if (bank_defunct(b)) {
+        for (i = 0; i < MAX_ACCOUNTS; i++) {
+            bank_loan_close(b, e, &b->account[i]);
+        }
+        e->bankruptcies++;
     }
 }
