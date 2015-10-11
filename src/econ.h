@@ -87,6 +87,7 @@ enum {
 
 typedef struct
 {
+    float repayment_per_month;
     float variable, constant;
     float surplus;
 } Capital;
@@ -137,7 +138,7 @@ typedef struct
     float loan_interest_rate;
     unsigned int loan_elapsed_days;
     float loan_repaid;
-    float loan_increment_per_month;
+    float loan_repayment_per_month;
 } Account;
 
 typedef struct

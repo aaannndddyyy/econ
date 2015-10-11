@@ -67,6 +67,7 @@ void firm_init(Firm * f)
         MIN_WORKING_DAY +
         ((rand()%10000/10000.0f)*(MAX_WORKING_DAY - MIN_WORKING_DAY));
     f->labour.time_necessary = f->labour.time_total/2;
+    f->capital.repayment_per_month = 0;
     f->capital.variable = 0;
     f->capital.constant = 10;
     f->capital.surplus = INITIAL_CREDIT;
@@ -139,11 +140,16 @@ float firm_product_sale_value(Firm * f, float surplus_per_day)
         firm_products_made_per_day(f);
 }
 
+float firm_loan_repayment_per_day(Firm *f)
+{
+    return f->capital.repayment_per_month/30.0f;
+}
+
 /* labour time needed for zero profit */
 float firm_necessary_labour_time(Firm * f)
 {
     return firm_variable_labour_per_day(f) * f->labour.time_total /
-        (firm_sales_income_per_day(f,f->sale_value) - firm_constant_per_day(f));
+        (firm_sales_income_per_day(f,f->sale_value) - firm_constant_per_day(f) - firm_loan_repayment_per_day(f));
 }
 
 float firm_necessary_variable_labour_per_day(Firm * f)
@@ -154,13 +160,13 @@ float firm_necessary_variable_labour_per_day(Firm * f)
 float firm_surplus_per_day(Firm * f)
 {
     return firm_sales_income_per_day(f,f->sale_value) -
-        (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
+        (firm_variable_labour_per_day(f) + firm_constant_per_day(f) + firm_loan_repayment_per_day(f));
 }
 
 float firm_surplus_per_day_actual(Firm * f)
 {
     return firm_sales_income_per_day_actual(f,f->sale_value) -
-        (firm_variable_labour_per_day(f) + firm_constant_per_day(f));
+        (firm_variable_labour_per_day(f) + firm_constant_per_day(f) + firm_loan_repayment_per_day(f));
 }
 
 void firm_strategy(Firm * f, Economy * e)
@@ -298,7 +304,7 @@ void firm_update(Firm * f, Economy * e, unsigned int weeks)
     unsigned int i, days;
     float new_products, products_per_day;
 
-	firm_purchasing(f, e, weeks);
+    firm_purchasing(f, e, weeks);
 
     /* how many days can we go without running out of raw materials ? */
     days = f->labour.days_per_week * weeks;
@@ -317,5 +323,5 @@ void firm_update(Firm * f, Economy * e, unsigned int weeks)
         }
     }
 
-	firm_strategy(f, e);
+    firm_strategy(f, e);
 }

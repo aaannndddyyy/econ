@@ -35,6 +35,7 @@ void bank_init(Bank * b)
 {
     unsigned int i;
 
+    b->capital.repayment_per_month = 0;
     b->capital.variable = 0;
     b->capital.constant = 0;
     b->capital.surplus = INITIAL_BANK_CREDIT;
@@ -53,7 +54,7 @@ void bank_init(Bank * b)
         b->account[i].loan_interest_rate = 0;
         b->account[i].loan_elapsed_days = 0;
         b->account[i].loan_repaid = 0;
-        b->account[i].loan_increment_per_month = 0;
+        b->account[i].loan_repayment_per_month = 0;
     }
 }
 
@@ -92,7 +93,10 @@ void bank_issue_loan(Bank * b, Economy * e,
                      float amount, unsigned int repayment_days)
 {
     int account_index;
+    float repayment_per_month;
     unsigned int i;
+    Firm * firm_borrowing;
+    Bank * bank_borrowing;
 
     account_index = bank_account_index(b, entity_type, entity_index);
     if (account_index == -1) {
@@ -113,6 +117,9 @@ void bank_issue_loan(Bank * b, Economy * e,
         return;
     }
     if (b->account[account_index].loan > 0) return;
+
+    repayment_per_month = amount * 2 / ((float)repayment_days/30.0f);
+
     b->account[account_index].entity_type = entity_type;
     b->account[account_index].entity_index = entity_index;
     b->account[account_index].balance += amount;
@@ -120,15 +127,63 @@ void bank_issue_loan(Bank * b, Economy * e,
     b->account[account_index].loan_interest_rate = b->interest_loan;
     b->account[account_index].loan_elapsed_days = 0;
     b->account[account_index].loan_repaid = 0;
-    b->account[account_index].loan_increment_per_month = amount * 2 / ((float)repayment_days/30.0f);
+    b->account[account_index].loan_repayment_per_month = repayment_per_month;
+
+    switch(entity_type) {
+    case ENTITY_FIRM: {
+        firm_borrowing = &e->firm[entity_index];
+        firm_borrowing->capital.repayment_per_month = repayment_per_month;
+    }
+    case ENTITY_BANK: {
+        bank_borrowing = &e->bank[entity_index];
+        bank_borrowing->capital.repayment_per_month = repayment_per_month;
+    }
+    }
+}
+
+void bank_loan_close(Bank * b, Economy * e, Account * a)
+{
+    Firm * firm_borrowing;
+    Bank * bank_borrowing;
+
+    a->loan = 0;
+    a->loan_repaid = 0;
+    a->loan_repayment_per_month = 0;
+    switch(a->entity_type) {
+    case ENTITY_FIRM: {
+        firm_borrowing = &e->firm[a->entity_index];
+        firm_borrowing->capital.repayment_per_month = 0;
+    }
+    case ENTITY_BANK: {
+        bank_borrowing = &e->bank[a->entity_index];
+        bank_borrowing->capital.repayment_per_month = 0;
+    }
+    }
+}
+
+void bank_loan_repay(Bank * b, Economy * e, Account * a, unsigned int increment_days)
+{
+    Firm * firm_borrowing;
+    Bank * bank_borrowing;
+    float repayment = (float)increment_days * a->loan_repayment_per_month / 30.0f;
+
+    switch(a->entity_type) {
+    case ENTITY_FIRM: {
+        firm_borrowing = &e->firm[a->entity_index];
+        firm_borrowing->capital.surplus -= repayment;
+    }
+    case ENTITY_BANK: {
+        bank_borrowing = &e->bank[a->entity_index];
+        bank_borrowing->capital.surplus -= repayment;
+    }
+    }
+    a->loan_repaid += repayment;
+    b->capital.surplus += repayment;
 }
 
 void bank_account_update(Bank * b, Economy * e, unsigned int account_index, unsigned int increment_days)
 {
-    Firm * firm_borrowing;
-    Bank * bank_borrowing;
     Account * a = &b->account[account_index];
-    float repayment;
     if (bank_account_defunct(a)) return;
 
     if (a->balance > 0) {
@@ -138,25 +193,11 @@ void bank_account_update(Bank * b, Economy * e, unsigned int account_index, unsi
         a->loan_elapsed_days += increment_days;
 
         /* repay */
-        repayment = (float)increment_days * a->loan_increment_per_month / 30.0f;
-        switch(a->entity_type) {
-        case ENTITY_FIRM: {
-            firm_borrowing = &e->firm[a->entity_index];
-            firm_borrowing->capital.surplus -= repayment;
-        }
-        case ENTITY_BANK: {
-            bank_borrowing = &e->bank[a->entity_index];
-            bank_borrowing->capital.surplus -= repayment;
-        }
-        }
-        a->loan_repaid += repayment;
-        b->capital.surplus += repayment;
+        bank_loan_repay(b, e, a, increment_days);
 
         /* has the loan been fully repaid ? */
         if (a->loan_repaid >= bank_loan_due(a)) {
-            a->loan = 0;
-            a->loan_repaid = 0;
-            a->loan_increment_per_month = 0;
+            bank_loan_close(b, e, a);
         }
     }
 }

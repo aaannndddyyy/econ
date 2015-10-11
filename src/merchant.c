@@ -36,6 +36,7 @@ void merchant_init(Merchant * m)
 {
     unsigned int i;
 
+    m->capital.repayment_per_month = 0;
     m->capital.variable = 0;
     m->capital.constant = 10;
     m->capital.surplus = INITIAL_MERCHANT_CREDIT;
