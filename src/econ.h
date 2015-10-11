@@ -134,8 +134,10 @@ typedef struct
     unsigned int entity_index;
     float balance;
     float loan;
+    float loan_interest_rate;
+    unsigned int loan_elapsed_days;
     float loan_repaid;
-    float loan_increment;
+    float loan_increment_per_month;
 } Account;
 
 typedef struct
@@ -173,5 +175,10 @@ void merchant_update(Economy * e);
 
 void bank_init(Bank * b);
 int bank_account_defunct(Account * a);
+int bank_account_index(Bank * b, unsigned int entity_type, unsigned int entity_index);
+void bank_update(Bank * b, Economy * e, unsigned int increment_days);
+void bank_issue_loan(Bank * b, Economy * e,
+                     unsigned int entity_type, unsigned int entity_index,
+                     float amount, unsigned int repayment_days);
 
 #endif
