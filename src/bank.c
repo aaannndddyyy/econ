@@ -271,6 +271,24 @@ float bank_average_interest_loan(Economy * e)
     return average;
 }
 
+float bank_average_worth(Economy * e)
+{
+    unsigned int i, hits=0;
+    Bank * b;
+    float average = 0;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        average += bank_worth(b);
+        hits++;
+    }
+    if (hits > 0) {
+        average /= (float)hits;
+    }
+    return average;
+}
+
 float bank_average_interest_deposit(Economy * e)
 {
     unsigned int i, hits=0;
@@ -304,6 +322,16 @@ void bank_strategy(Bank * b, Economy * e)
         b->interest_deposit *= 0.99f;
     }
     if (b->interest_deposit < average * 0.95f) {
+        b->interest_deposit *= 1.01f;
+    }
+
+    average = bank_average_worth(e);
+    if (bank_worth(b) > average) {
+        b->interest_loan *= 1.01f;
+        b->interest_deposit *= 0.99f;
+    }
+    else {
+        b->interest_loan *= 0.99f;
         b->interest_deposit *= 1.01f;
     }
 }
