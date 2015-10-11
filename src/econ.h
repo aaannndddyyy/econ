@@ -62,7 +62,7 @@
 #define INITIAL_BANK_DEPOSIT     10000
 
 #define MAX_MERCHANT_STOCK       100000
-#define MAX_BANKS                100
+#define MAX_BANKS                5
 #define MAX_ACCOUNTS             (MAX_ECONOMY_SIZE/4)
 #define MIN_BANK_INTEREST        0
 #define MAX_BANK_INTEREST        30
@@ -189,5 +189,6 @@ void bank_issue_loan(Bank * b, Economy * e,
 void bank_account_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index);
 float bank_average_interest_loan(Economy * e);
 float bank_average_interest_deposit(Economy * e);
+float bank_worth(Bank * b);
 
 #endif

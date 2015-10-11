@@ -352,6 +352,10 @@ int main(int argc, char* argv[])
         for (j = 0; j < MAX_PRODUCT_TYPES; j++)  {
             printf("%d ", (int)e.merchant.stock[j]);
         }
+        printf("\nBank: ");
+        for (j = 0; j < MAX_BANKS; j++)  {
+            printf("%.2f ", bank_worth(&e.bank[j]));
+        }
         printf("\n");
     }
     return 0;
