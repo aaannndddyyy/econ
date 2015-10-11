@@ -39,7 +39,7 @@ void merchant_init(Merchant * m)
     m->capital.repayment_per_month = 0;
     m->capital.variable = 0;
     m->capital.constant = 10;
-    m->capital.surplus = INITIAL_MERCHANT_CREDIT;
+    m->capital.surplus = INITIAL_MERCHANT_DEPOSIT;
     m->interest_rate = 2;
     m->hedge = MAX_PRODUCT_TYPES/2;
     for (i = 0; i < MAX_PRODUCT_TYPES; i++) {

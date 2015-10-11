@@ -57,9 +57,9 @@
 #define PROCESS_INPUTS           2
 #define PRODUCT_PRIMITIVE        0
 
-#define INITIAL_CREDIT           10000
-#define INITIAL_MERCHANT_CREDIT  10000
-#define INITIAL_BANK_CREDIT      10000
+#define INITIAL_DEPOSIT          10000
+#define INITIAL_MERCHANT_DEPOSIT 10000
+#define INITIAL_BANK_DEPOSIT     10000
 
 #define MAX_MERCHANT_STOCK       100000
 #define MAX_BANKS                100
@@ -144,7 +144,7 @@ typedef struct
 typedef struct
 {
     Capital capital;
-    float interest_credit;
+    float interest_deposit;
     float interest_loan;
     unsigned int active_accounts;
     Account account[MAX_ACCOUNTS];
@@ -183,5 +183,7 @@ void bank_issue_loan(Bank * b, Economy * e,
                      unsigned int entity_type, unsigned int entity_index,
                      float amount, unsigned int repayment_days);
 void bank_loan_close_entity(Bank * b, Economy * e, unsigned int entity_type, unsigned int entity_index);
+float bank_average_interest_loan(Economy * e);
+float bank_average_interest_deposit(Economy * e);
 
 #endif

@@ -42,13 +42,13 @@ void bank_init(Bank * b)
     b->capital.repayment_per_month = 0;
     b->capital.variable = 0;
     b->capital.constant = 0;
-    b->capital.surplus = INITIAL_BANK_CREDIT;
-    b->interest_credit =
+    b->capital.surplus = INITIAL_BANK_DEPOSIT;
+    b->interest_deposit =
         MIN_BANK_INTEREST +
         ((rand()%10000/10000.0)*(MAX_BANK_INTEREST - MIN_BANK_INTEREST));
     b->interest_loan =
-        b->interest_credit +
-        ((rand()%10000/10000.0)*(MAX_LOAN_INTEREST - b->interest_credit));
+        b->interest_deposit +
+        ((rand()%10000/10000.0)*(MAX_LOAN_INTEREST - b->interest_deposit));
     b->active_accounts = 0;
     for (i = 0; i < MAX_ACCOUNTS; i++) {
         b->account[i].entity_type = ENTITY_NONE;
@@ -225,7 +225,7 @@ void bank_account_update(Bank * b, Economy * e, unsigned int account_index, unsi
     if (bank_account_defunct(a)) return;
 
     if (a->balance > 0) {
-        a->balance *= (1.0f + (b->interest_credit/100.0f));
+        a->balance *= (1.0f + (b->interest_deposit/100.0f));
     }
     if (a->loan > 0) {
         a->loan_elapsed_days += increment_days;
@@ -236,6 +236,42 @@ void bank_account_update(Bank * b, Economy * e, unsigned int account_index, unsi
             bank_loan_close(b, e, a);
         }
     }
+}
+
+float bank_average_interest_loan(Economy * e)
+{
+    unsigned int i, hits=0;
+    Bank * b;
+    float average = 0;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        average += b->interest_loan;
+        hits++;
+    }
+    if (hits > 0) {
+        average /= (float)hits;
+    }
+    return average;
+}
+
+float bank_average_interest_deposit(Economy * e)
+{
+    unsigned int i, hits=0;
+    Bank * b;
+    float average = 0;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        average += b->interest_deposit;
+        hits++;
+    }
+    if (hits > 0) {
+        average /= (float)hits;
+    }
+    return average;
 }
 
 void bank_update(Bank * b, Economy * e, unsigned int increment_days)

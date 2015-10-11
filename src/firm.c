@@ -70,7 +70,7 @@ void firm_init(Firm * f)
     f->capital.repayment_per_month = 0;
     f->capital.variable = 0;
     f->capital.constant = 10;
-    f->capital.surplus = INITIAL_CREDIT;
+    f->capital.surplus = INITIAL_DEPOSIT;
     f->sale_value = 1.50f;
 }
 
