@@ -44,7 +44,9 @@ void econ_init(Economy * e)
         e->population += e->firm[i].labour.workers;
     }
     merchant_init(&e->merchant);
-    bank_init(&e->bank);
+    for (i = 0; i < MAX_BANKS; i++) {
+        bank_init(&e->bank[i]);
+    }
 }
 
 float econ_average_price(Economy * e, unsigned int product_type, unsigned int location)

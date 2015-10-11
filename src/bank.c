@@ -39,8 +39,18 @@ void bank_init(Bank * b)
     b->capital.constant = 0;
     b->capital.surplus = INITIAL_BANK_CREDIT;
     b->interest_credit = 0.5f;
-    b->interest_debt = 10;
-    for (i = 0; i < MAX_ECONOMY_SIZE+1; i++) {
-        b->balance[i] = 0;
+    b->interest_loan = 10;
+    for (i = 0; i < MAX_ACCOUNTS; i++) {
+        b->account[i].entity_type = ENTITY_NONE;
+        b->account[i].entity_index = 0;
+        b->account[i].balance = 0;
+        b->account[i].loan = 0;
+        b->account[i].loan_repaid = 0;
+        b->account[i].loan_increment = 0;
     }
+}
+
+int bank_account_defunct(Account * a)
+{
+    return (a->entity_index == ENTITY_NONE);
 }

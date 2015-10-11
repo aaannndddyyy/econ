@@ -62,6 +62,8 @@
 #define INITIAL_BANK_CREDIT      10000
 
 #define MAX_MERCHANT_STOCK       100000
+#define MAX_BANKS                100
+#define MAX_ACCOUNTS             (MAX_ECONOMY_SIZE/4)
 
 /* number of locations/continents */
 #define LOCATIONS                3
@@ -70,6 +72,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+
+enum {
+    ENTITY_NONE,
+    ENTITY_FIRM,
+    ENTITY_MERCHANT,
+    ENTITY_BANK,
+    ENTITIES
+};
 
 typedef struct
 {
@@ -116,10 +126,20 @@ typedef struct
 
 typedef struct
 {
+    unsigned int entity_type;
+    unsigned int entity_index;
+    float balance;
+    float loan;
+    float loan_repaid;
+    float loan_increment;
+} Account;
+
+typedef struct
+{
     Capital capital;
     float interest_credit;
-    float interest_debt;
-    float balance[MAX_ECONOMY_SIZE+1];
+    float interest_loan;
+    Account account[MAX_ACCOUNTS];
 } Bank;
 
 typedef struct
@@ -127,7 +147,7 @@ typedef struct
     unsigned int size;
     Firm firm[MAX_ECONOMY_SIZE];
     Merchant merchant;
-    Bank bank;
+    Bank bank[MAX_BANKS];
     unsigned int population;
     unsigned int unemployed;
     unsigned int bankruptcies;
@@ -147,5 +167,6 @@ void merchant_init(Merchant * m);
 void merchant_update(Economy * e);
 
 void bank_init(Bank * b);
+int bank_account_defunct(Account * a);
 
 #endif
