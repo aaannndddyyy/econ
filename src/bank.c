@@ -29,6 +29,10 @@
 
 ****************************************************************/
 
+/* references:
+   http://www.bankofengland.co.uk/publications/Documents/quarterlybulletin/2014/qb14q1prereleasemoneycreation.pdf
+*/
+
 #include "econ.h"
 
 void bank_init(Bank * b)
@@ -125,6 +129,7 @@ void bank_issue_loan(Bank * b, Economy * e,
 
     repayment_per_month = amount * 2 / ((float)repayment_days/30.0f);
 
+    b->capital.surplus -= amount;
     b->account[account_index].entity_type = entity_type;
     b->account[account_index].entity_index = entity_index;
     b->account[account_index].balance = 0;
@@ -243,6 +248,7 @@ void bank_update(Bank * b, Economy * e, unsigned int increment_days)
         bank_account_update(b, e, i, increment_days);
     }
 
+    /* NOTE: just looking for surplus < 0 may be incorrect */
     if (bank_defunct(b)) {
         for (i = 0; i < MAX_ACCOUNTS; i++) {
             bank_loan_close(b, e, &b->account[i]);
