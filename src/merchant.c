@@ -46,6 +46,7 @@ void merchant_init(Merchant * m)
         m->stock[i] = 0;
         m->price[i] = 0;
     }
+	clear_history(&m->capital);
 }
 
 void merchant_buy(Economy * e)
@@ -113,4 +114,5 @@ void merchant_buy(Economy * e)
 void merchant_update(Economy * e)
 {
     merchant_buy(e);
+    update_history(&e->merchant.capital);
 }

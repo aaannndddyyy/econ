@@ -31,6 +31,21 @@
 
 #include "econ.h"
 
+void clear_history(Capital * c)
+{
+    memset(&c->surplus_history[0], '\0', HISTORY_STEPS*sizeof(float));
+}
+
+void update_history(Capital * c)
+{
+    int i;
+
+    for (i = HISTORY_STEPS-2; i >= 0; i--) {
+        c->surplus_history[i+1] = c->surplus_history[i];
+    }
+    c->surplus_history[0] = c->surplus;
+}
+
 void econ_init(Economy * e)
 {
     unsigned int i;

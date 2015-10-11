@@ -72,6 +72,8 @@
 #define MIN_SAVINGS_RATE         0
 #define MAX_SAVINGS_RATE         10
 
+#define HISTORY_STEPS            10
+
 /* number of locations/continents */
 #define LOCATIONS                3
 
@@ -93,6 +95,7 @@ typedef struct
     float repayment_per_month;
     float variable, constant;
     float surplus;
+    float surplus_history[HISTORY_STEPS];
     float savings_rate;
 } Capital;
 
@@ -164,6 +167,9 @@ typedef struct
     unsigned int unemployed;
     unsigned int bankruptcies;
 } Economy;
+
+void clear_history(Capital * c);
+void update_history(Capital * c);
 
 float econ_average_price(Economy * e, unsigned int product_type, unsigned int location);
 float econ_average_price_global(Economy * e, unsigned int product_type);

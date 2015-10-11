@@ -74,6 +74,7 @@ void firm_init(Firm * f)
     f->capital.constant = 10;
     f->capital.surplus = INITIAL_DEPOSIT;
     f->sale_value = 1.50f;
+	clear_history(&f->capital);
 }
 
 int firm_defunct(Firm * f)
@@ -399,4 +400,5 @@ void firm_update(Firm * f, Economy * e, unsigned int weeks)
     }
 
     firm_strategy(f, e);
+    update_history(&f->capital);
 }

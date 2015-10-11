@@ -60,6 +60,7 @@ void bank_init(Bank * b)
         b->account[i].loan_repaid = 0;
         b->account[i].loan_repayment_per_month = 0;
     }
+	clear_history(&b->capital);
 }
 
 int bank_account_defunct(Account * a)
@@ -348,6 +349,7 @@ void bank_update(Bank * b, Economy * e, unsigned int increment_days)
     }
 
     bank_strategy(b, e);
+    update_history(&b->capital);
 
     if (bank_defunct(b)) {
         for (i = 0; i < MAX_ACCOUNTS; i++) {
