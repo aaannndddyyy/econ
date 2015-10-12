@@ -39,6 +39,7 @@ void bank_init(Bank * b)
 {
     unsigned int i;
 
+    b->tax_location = (unsigned int)(rand()%LOCATIONS);
     b->capital.repayment_per_month = 0;
     b->capital.variable = 0;
     b->capital.constant = 0;
@@ -121,6 +122,7 @@ void bank_issue_loan(Bank * b, Economy * e,
     unsigned int i;
     Firm * firm_borrowing;
     Bank * bank_borrowing;
+    State * state_borrowing;
 
     account_index = bank_account_index(b, entity_type, entity_index);
     if (account_index == -1) {
@@ -167,6 +169,12 @@ void bank_issue_loan(Bank * b, Economy * e,
         bank_borrowing->capital.surplus += amount;
         break;
     }
+    case ENTITY_STATE: {
+        state_borrowing = &e->state[entity_index];
+        state_borrowing->capital.repayment_per_month = repayment_per_month;
+        state_borrowing->capital.surplus += amount;
+        break;
+    }
     }
 }
 
@@ -174,6 +182,7 @@ void bank_loan_close(Bank * b, Economy * e, Account * a)
 {
     Firm * firm_borrowing;
     Bank * bank_borrowing;
+    State * state_borrowing;
 
     if (bank_account_defunct(a)) return;
 
@@ -186,6 +195,11 @@ void bank_loan_close(Bank * b, Economy * e, Account * a)
     case ENTITY_BANK: {
         bank_borrowing = &e->bank[a->entity_index];
         bank_borrowing->capital.repayment_per_month = 0;
+        break;
+    }
+    case ENTITY_STATE: {
+        state_borrowing = &e->state[a->entity_index];
+        state_borrowing->capital.repayment_per_month = 0;
         break;
     }
     }
@@ -217,6 +231,7 @@ void bank_loan_repay(Bank * b, Economy * e, Account * a, unsigned int increment_
 {
     Firm * firm_borrowing;
     Bank * bank_borrowing;
+    State * state_borrowing;
     float repayment = (float)increment_days * a->loan_repayment_per_month / 30.0f;
 
     switch(a->entity_type) {
@@ -228,6 +243,11 @@ void bank_loan_repay(Bank * b, Economy * e, Account * a, unsigned int increment_
     case ENTITY_BANK: {
         bank_borrowing = &e->bank[a->entity_index];
         bank_borrowing->capital.surplus -= repayment;
+        break;
+    }
+    case ENTITY_STATE: {
+        state_borrowing = &e->state[a->entity_index];
+        state_borrowing->capital.surplus -= repayment;
         break;
     }
     }
@@ -358,4 +378,38 @@ void bank_update(Bank * b, Economy * e, unsigned int increment_days)
         }
         e->bankruptcies++;
     }
+}
+
+Bank * best_bank_for_loan(Economy * e)
+{
+    unsigned int i;
+    Bank * b, * best = NULL;
+    float min_interest_rate = 0;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        if ((best == NULL) || (b->interest_loan < min_interest_rate)) {
+            min_interest_rate = b->interest_loan;
+            best = b;
+        }
+    }
+    return best;
+}
+
+Bank * best_bank_for_savings(Economy * e)
+{
+    unsigned int i;
+    Bank * b, * best = NULL;
+    float max_interest_rate = 0;
+
+    for (i = 0; i < MAX_BANKS; i++) {
+        b = &e->bank[i];
+        if (bank_defunct(b)) continue;
+        if ((best == NULL) || (b->interest_deposit > max_interest_rate)) {
+            max_interest_rate = b->interest_deposit;
+            best = b;
+        }
+    }
+    return best;
 }

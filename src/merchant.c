@@ -36,6 +36,7 @@ void merchant_init(Merchant * m)
 {
     unsigned int i;
 
+    m->tax_location = (unsigned int)(rand()%LOCATIONS);
     m->capital.repayment_per_month = 0;
     m->capital.variable = 0;
     m->capital.constant = 10;

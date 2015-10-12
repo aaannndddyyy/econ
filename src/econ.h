@@ -60,6 +60,7 @@
 #define INITIAL_DEPOSIT          10000
 #define INITIAL_MERCHANT_DEPOSIT 10000
 #define INITIAL_BANK_DEPOSIT     10000
+#define INITIAL_STATE_DEPOSIT    (INITIAL_BANK_DEPOSIT*10)
 
 #define MAX_MERCHANT_STOCK       100000
 #define MAX_BANKS                5
@@ -77,6 +78,14 @@
 /* number of locations/continents */
 #define LOCATIONS                3
 
+#define MIN_VAT_RATE             0
+#define MAX_VAT_RATE             50
+
+#define MIN_BUSINESS_TAX_RATE    0
+#define MAX_BUSINESS_TAX_RATE    50
+
+#define MIN_LOAN                 1000
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -87,6 +96,7 @@ enum {
     ENTITY_FIRM,
     ENTITY_MERCHANT,
     ENTITY_BANK,
+    ENTITY_STATE,
     ENTITIES
 };
 
@@ -121,6 +131,7 @@ typedef struct
 typedef struct
 {
     Capital capital;
+    unsigned int tax_location;
     float interest_rate;
     unsigned int hedge;
     float stock[MAX_PRODUCT_TYPES];
@@ -151,6 +162,7 @@ typedef struct
 typedef struct
 {
     Capital capital;
+    unsigned int tax_location;
     float interest_deposit;
     float interest_loan;
     unsigned int active_accounts;
@@ -161,6 +173,7 @@ typedef struct
 {
     Capital capital;
     float VAT_rate;
+    float business_tax_rate;
     unsigned int population;
     unsigned int unemployed;
 } State;
@@ -203,5 +216,9 @@ void bank_account_close_entity(Bank * b, Economy * e, unsigned int entity_type, 
 float bank_average_interest_loan(Economy * e);
 float bank_average_interest_deposit(Economy * e);
 float bank_worth(Bank * b);
+Bank * best_bank_for_savings(Economy * e);
+Bank * best_bank_for_loan(Economy * e);
+
+void state_init(State * s);
 
 #endif

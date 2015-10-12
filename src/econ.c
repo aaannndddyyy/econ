@@ -53,8 +53,7 @@ void econ_init(Economy * e)
 
     e->size = MAX_ECONOMY_SIZE;
     for (i = 0; i < LOCATIONS; i++) {
-        e->state[i].unemployed = 0;
-        e->state[i].population = 0;
+        state_init(&e->state[i]);
     }
     e->bankruptcies = 0;
     for (i = 0; i < e->size; i++) {

@@ -184,41 +184,6 @@ int firm_index(Firm * f, Economy * e)
     return -1;
 }
 
-/* what is the best bank to obtain a loan from ? */
-Bank * firm_best_bank_for_loan(Firm * f, Economy * e)
-{
-    unsigned int i;
-    Bank * b, * best = NULL;
-    float min_interest_rate = 0;
-
-    for (i = 0; i < MAX_BANKS; i++) {
-        b = &e->bank[i];
-        if (bank_defunct(b)) continue;
-        if ((best == NULL) || (b->interest_loan < min_interest_rate)) {
-            min_interest_rate = b->interest_loan;
-            best = b;
-        }
-    }
-    return best;
-}
-
-Bank * firm_best_bank_for_savings(Firm * f, Economy * e)
-{
-    unsigned int i;
-    Bank * b, * best = NULL;
-    float max_interest_rate = 0;
-
-    for (i = 0; i < MAX_BANKS; i++) {
-        b = &e->bank[i];
-        if (bank_defunct(b)) continue;
-        if ((best == NULL) || (b->interest_deposit > max_interest_rate)) {
-            max_interest_rate = b->interest_deposit;
-            best = b;
-        }
-    }
-    return best;
-}
-
 void firm_obtain_loan(Firm * f, Economy * e)
 {
     Bank * best;
@@ -227,10 +192,11 @@ void firm_obtain_loan(Firm * f, Economy * e)
     int index;
 
     if (f->capital.repayment_per_month == 0) {
-        best = firm_best_bank_for_loan(f, e);
+        best = best_bank_for_loan(e);
         if (best != NULL) {
             repayment_days = 30*6;
             amount = firm_surplus_per_day(f) * repayment_days;
+			if (amount < MIN_LOAN) amount = MIN_LOAN;
             index = firm_index(f, e);
             if (index > -1) {
                 bank_issue_loan(best, e, ENTITY_FIRM,
