@@ -350,7 +350,7 @@ void econ_update(Economy * e, unsigned int weeks)
         bank_update(&e->bank[i], e, weeks * 5);
     }
     for (i = 0; i < LOCATIONS; i++) {
-        state_update(&->state[i], e, weeks);
+        state_update(&e->state[i], e, weeks);
     }
     merchant_update(e);
     econ_bankrupt(e);

@@ -57,8 +57,40 @@ float state_spending(State * s, unsigned int weeks)
     return welfare + borrowing;
 }
 
+int state_index(State * s, Economy * e)
+{
+    unsigned int i;
+    State * s2;
+
+    for (i = 0; i < LOCATIONS; i++) {
+        s2 = &e->state[i];
+        if (s2 == s) return (int)i;
+    }
+    return -1;
+}
+
 void state_update(State * s, Economy * e, unsigned int weeks)
 {
+    Bank * best;
+    unsigned int index, repayment_days;
+    float amount;
+
+    /* obtaining loans */
+    if (s->capital.repayment_per_month == 0) {
+        if (state_spending(s, weeks) > s->capital.surplus) {
+            best = best_bank_for_loan(e);
+            if (best != NULL) {
+                index = state_index(s, e);
+                amount = state_spending(s, weeks)*2;
+                repayment_days = 7 * weeks * 3;
+                bank_issue_loan(best, e, ENTITY_STATE,
+                                (unsigned int)index,
+                                amount, repayment_days);
+            }
+        }
+    }
+
+    /* spending */
     s->capital.surplus -= state_spending(s, weeks);
     update_history(&s->capital);
 }

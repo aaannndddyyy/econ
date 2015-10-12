@@ -224,6 +224,6 @@ Bank * best_bank_for_savings(Economy * e);
 Bank * best_bank_for_loan(Economy * e);
 
 void state_init(State * s);
-void state_update(State * s, unsigned int weeks);
+void state_update(State * s, Economy * e, unsigned int weeks);
 
 #endif
