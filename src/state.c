@@ -33,16 +33,32 @@
 
 void state_init(State * s)
 {
-	s->capital.surplus = INITIAL_STATE_DEPOSIT;
-	s->capital.variable = 0;
-	s->capital.constant = 0;
-	s->capital.repayment_per_month = 0;
-	s->capital.savings_rate = 0;
-	clear_history(&s->capital);
-	s->population = INITIAL_WORKERS;
-	s->unemployed = 0;
-	s->VAT_rate = MIN_VAT_RATE +
-		((rand()%10000/10000.0)*(MAX_VAT_RATE - MIN_VAT_RATE));
-	s->business_tax_rate = MIN_BUSINESS_TAX_RATE +
-		((rand()%10000/10000.0)*(MAX_BUSINESS_TAX_RATE - MIN_BUSINESS_TAX_RATE));
+    s->capital.surplus = INITIAL_STATE_DEPOSIT;
+    s->capital.variable = 0;
+    s->capital.constant = 0;
+    s->capital.repayment_per_month = 0;
+    s->capital.savings_rate = 0;
+    clear_history(&s->capital);
+    s->population = INITIAL_WORKERS;
+    s->unemployed = 0;
+    s->VAT_rate = MIN_VAT_RATE +
+        ((rand()%10000/10000.0)*(MAX_VAT_RATE - MIN_VAT_RATE));
+    s->business_tax_rate = MIN_BUSINESS_TAX_RATE +
+        ((rand()%10000/10000.0f)*(MAX_BUSINESS_TAX_RATE - MIN_BUSINESS_TAX_RATE));
+    s->citizens_dividend = MIN_CITIZENS_DIVIDEND +
+        ((rand()%10000/10000.0f)*(MAX_CITIZENS_DIVIDEND - MIN_CITIZENS_DIVIDEND));
+}
+
+float state_spending(State * s, unsigned int weeks)
+{
+    /* citizen's dividend is hourly, like wages */
+    float welfare = (s->population * s->citizens_dividend) * 24 * 7 * (float)weeks;
+    float borrowing = s->capital.repayment_per_month * (float)weeks / 4;
+    return welfare + borrowing;
+}
+
+void state_update(State * s, Economy * e, unsigned int weeks)
+{
+    s->capital.surplus -= state_spending(s, weeks);
+    update_history(&s->capital);
 }

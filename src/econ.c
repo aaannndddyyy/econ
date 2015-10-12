@@ -349,6 +349,9 @@ void econ_update(Economy * e, unsigned int weeks)
     for (i = 0; i < MAX_BANKS; i++) {
         bank_update(&e->bank[i], e, weeks * 5);
     }
+    for (i = 0; i < LOCATIONS; i++) {
+        state_update(&->state[i], e, weeks);
+    }
     merchant_update(e);
     econ_bankrupt(e);
     econ_mergers(e);

@@ -86,6 +86,9 @@
 
 #define MIN_LOAN                 1000
 
+#define MIN_CITIZENS_DIVIDEND    0
+#define MAX_CITIZENS_DIVIDEND    MAX_WAGE
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -176,6 +179,7 @@ typedef struct
     float business_tax_rate;
     unsigned int population;
     unsigned int unemployed;
+    float citizens_dividend;
 } State;
 
 typedef struct
@@ -220,5 +224,6 @@ Bank * best_bank_for_savings(Economy * e);
 Bank * best_bank_for_loan(Economy * e);
 
 void state_init(State * s);
+void state_update(State * s, unsigned int weeks);
 
 #endif
