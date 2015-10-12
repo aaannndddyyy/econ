@@ -159,12 +159,19 @@ typedef struct
 
 typedef struct
 {
+    Capital capital;
+    float VAT_rate;
+    unsigned int population;
+    unsigned int unemployed;
+} State;
+
+typedef struct
+{
     unsigned int size;
     Firm firm[MAX_ECONOMY_SIZE];
     Merchant merchant;
     Bank bank[MAX_BANKS];
-    unsigned int population;
-    unsigned int unemployed;
+    State state[LOCATIONS];
     unsigned int bankruptcies;
 } Economy;
 

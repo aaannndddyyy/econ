@@ -49,14 +49,18 @@ void update_history(Capital * c)
 void econ_init(Economy * e)
 {
     unsigned int i;
+    Firm * f;
 
     e->size = MAX_ECONOMY_SIZE;
-    e->unemployed = 0;
-    e->population = 0;
+    for (i = 0; i < LOCATIONS; i++) {
+        e->state[i].unemployed = 0;
+        e->state[i].population = 0;
+    }
     e->bankruptcies = 0;
     for (i = 0; i < e->size; i++) {
-        firm_init(&e->firm[i]);
-        e->population += e->firm[i].labour.workers;
+        f = &e->firm[i];
+        firm_init(f);
+        e->state[f->location].population += e->firm[i].labour.workers;
     }
     merchant_init(&e->merchant);
     for (i = 0; i < MAX_BANKS; i++) {
@@ -153,14 +157,12 @@ void econ_startups(Economy * e)
     Firm * f;
     Bank * b;
 
-    if (e->unemployed < INITIAL_WORKERS) return;
-
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
         if (firm_defunct(f)) {
-            if (e->unemployed >= INITIAL_WORKERS) {
+            if (e->state[f->location].unemployed >= INITIAL_WORKERS) {
                 firm_init(f);
-                e->unemployed -= f->labour.workers;
+                e->state[f->location].unemployed -= f->labour.workers;
                 if (e->bankruptcies > 0) e->bankruptcies--;
             }
         }
@@ -234,7 +236,7 @@ void econ_bankrupt(Economy * e)
             if (f->capital.repayment_per_month > 0) {
                 econ_close_bank_account(e, ENTITY_FIRM, i);
             }
-            e->unemployed += f->labour.workers;
+            e->state[f->location].unemployed += f->labour.workers;
             f->labour.workers = 0;
             e->bankruptcies++;
         }
@@ -243,7 +245,7 @@ void econ_bankrupt(Economy * e)
 
 void econ_labour_market(Economy * e)
 {
-    unsigned int i, j, max, recruiting=0;
+    unsigned int i, j, l, max, recruiting=0;
     int best;
     Firm * f, * f2;
     float max_wage;
@@ -280,27 +282,30 @@ void econ_labour_market(Economy * e)
         if (f->labour.is_recruiting == 1) recruiting++;
     }
     if (recruiting > 0) {
-        max = e->unemployed;
-        for (i = 0; i < max; i++) {
-            max_wage = 0;
-            best = -1;
-            for (j = 0; j < e->size; j++) {
-                f = &e->firm[i];
-                if (firm_defunct(f)) continue;
-                if (f->labour.is_recruiting == 0) continue;
-                if (f->labour.wage_rate > max_wage) {
-                    max_wage = f->labour.wage_rate;
-                    best = (int)j;
+        for (l = 0; l < LOCATIONS; l++) {
+            max = e->state[l].unemployed;
+            for (i = 0; i < max; i++) {
+                max_wage = 0;
+                best = -1;
+                for (j = 0; j < e->size; j++) {
+                    f = &e->firm[i];
+                    if (firm_defunct(f)) continue;
+                    if (f->location != l) continue;
+                    if (f->labour.is_recruiting == 0) continue;
+                    if (f->labour.wage_rate > max_wage) {
+                        max_wage = f->labour.wage_rate;
+                        best = (int)j;
+                    }
                 }
+                if (best > -1) {
+                    f = &e->firm[best];
+                    f->labour.workers++;
+                    f->labour.is_recruiting = 0;
+                    recruiting--;
+                    e->state[l].unemployed--;
+                }
+                if (recruiting == 0) break;
             }
-            if (best > -1) {
-                f = &e->firm[best];
-                f->labour.workers++;
-                f->labour.is_recruiting = 0;
-                recruiting--;
-                e->unemployed--;
-            }
-            if (recruiting == 0) break;
         }
     }
 }
@@ -362,7 +367,7 @@ int main(int argc, char* argv[])
         econ_update(&e, 1);
         printf("Profit: %.2f\n",e.firm[0].capital.surplus);
         printf("Bankrupt: %d/%d\n",e.bankruptcies,e.size);
-        printf("Unemployed: %d/%d\n",e.unemployed,e.population);
+        printf("Unemployed: %d/%d\n",e.state[0].unemployed,e.state[0].population);
         printf("Merchant: ");
         for (j = 0; j < MAX_PRODUCT_TYPES; j++)  {
             printf("%d ", (int)e.merchant.stock[j]);

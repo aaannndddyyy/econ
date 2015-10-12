@@ -74,7 +74,7 @@ void firm_init(Firm * f)
     f->capital.constant = 10;
     f->capital.surplus = INITIAL_DEPOSIT;
     f->sale_value = 1.50f;
-	clear_history(&f->capital);
+    clear_history(&f->capital);
 }
 
 int firm_defunct(Firm * f)
@@ -271,7 +271,7 @@ void firm_strategy(Firm * f, Economy * e)
             f->labour.workers--;
         }
         if (f->labour.workers != workers) {
-            e->unemployed += workers - f->labour.workers;
+            e->state[f->location].unemployed += workers - f->labour.workers;
         }
     }
 
