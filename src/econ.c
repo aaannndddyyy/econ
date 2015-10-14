@@ -65,6 +65,9 @@ void econ_init(Economy * e)
     for (i = 0; i < MAX_BANKS; i++) {
         bank_init(&e->bank[i]);
     }
+    for (i = 0; i < MAX_RENTIERS; i++) {
+        rentier_init(&e->rentier[i]);
+    }
 }
 
 float econ_average_price(Economy * e, unsigned int product_type, unsigned int location)

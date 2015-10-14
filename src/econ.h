@@ -89,6 +89,9 @@
 #define MIN_CITIZENS_DIVIDEND    0
 #define MAX_CITIZENS_DIVIDEND    MAX_WAGE
 
+#define MAX_RENTIERS             1024
+#define INITIAL_RENTIER_DEPOSIT  10000
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -101,6 +104,13 @@ enum {
     ENTITY_BANK,
     ENTITY_STATE,
     ENTITIES
+};
+
+enum {
+    ASSET_LAND,
+    ASSET_HOUSE,
+    ASSET_FACTORY,
+    ASSET_TYPES
 };
 
 typedef struct
@@ -175,6 +185,16 @@ typedef struct
 typedef struct
 {
     Capital capital;
+    unsigned int asset_type;
+    float asset_value;
+    float rent_per_month;
+    unsigned int quantity;
+    unsigned int location;
+} Rentier;
+
+typedef struct
+{
+    Capital capital;
     float VAT_rate;
     float business_tax_rate;
     unsigned int population;
@@ -189,6 +209,7 @@ typedef struct
     Merchant merchant;
     Bank bank[MAX_BANKS];
     State state[LOCATIONS];
+    Rentier rentier[MAX_RENTIERS];
     unsigned int bankruptcies;
 } Economy;
 
@@ -225,5 +246,8 @@ Bank * best_bank_for_loan(Economy * e);
 
 void state_init(State * s);
 void state_update(State * s, Economy * e, unsigned int weeks);
+
+void rentier_init(Rentier * r);
+void rentier_update(Rentier * r, Economy * e, unsigned int weeks);
 
 #endif
