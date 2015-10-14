@@ -47,7 +47,7 @@ void merchant_init(Merchant * m)
         m->stock[i] = 0;
         m->price[i] = 0;
     }
-	clear_history(&m->capital);
+    clear_history(&m->capital);
 }
 
 void merchant_buy(Economy * e)
@@ -58,7 +58,7 @@ void merchant_buy(Economy * e)
     int best_index;
     float investment_tranche = m->capital.surplus / (float)m->hedge;
     float buy_qty, target_price, variance, variance_min=0, variance_max=0;
-    float average_variance;
+    float average_variance, value, tax;
 
     /* calculate price variance range for all commodities */
     for (i = 0; i < MAX_PRODUCT_TYPES; i++) {
@@ -105,8 +105,10 @@ void merchant_buy(Economy * e)
                 f->process.stock -= buy_qty;
                 if (f->process.stock < 0) f->process.stock = 0;
                 m->stock[i] += buy_qty;
-                m->capital.surplus -= f->sale_value * buy_qty;
-                f->capital.surplus += f->sale_value * buy_qty;
+                value = f->sale_value * buy_qty;
+                tax = value * e->state[f->location].VAT_rate / 100.0f;
+                m->capital.surplus -= value;
+                f->capital.surplus += value - tax;
             }
         }
     }
