@@ -196,7 +196,7 @@ void firm_obtain_loan(Firm * f, Economy * e)
         if (best != NULL) {
             repayment_days = 30*6;
             amount = firm_surplus_per_day(f) * repayment_days;
-			if (amount < MIN_LOAN) amount = MIN_LOAN;
+            if (amount < MIN_LOAN) amount = MIN_LOAN;
             index = firm_index(f, e);
             if (index > -1) {
                 bank_issue_loan(best, e, ENTITY_FIRM,
@@ -268,6 +268,7 @@ void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int ind
     unsigned int product_type = f->process.raw_material[index];
     Merchant * m = &e->merchant;
     float buy_qty = quantity;
+    float value, tax;
 
     if (quantity < 1) return;
 
@@ -281,15 +282,18 @@ void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int ind
     if (buy_qty < 1) return;
     m->stock[product_type] -= buy_qty;
     f->process.raw_material_stock[index] += buy_qty;
-    m->capital.surplus += buy_qty * m->price[product_type];
-    f->capital.surplus -= buy_qty * m->price[product_type];
+    value = buy_qty * m->price[product_type];
+    tax = value * e->state[m->tax_location].VAT_rate / 100.0f;
+    m->capital.surplus += value - tax;
+    f->capital.surplus -= value;
+    e->state[m->tax_location].capital.surplus += tax;
     if (f->capital.surplus < 0) f->capital.surplus = 0;
 }
 
 void firm_buy_raw_material_locally(Firm * f, Economy * e, unsigned int index, float quantity)
 {
     int best_index;
-    float quantity_available, buy_quantity;
+    float quantity_available, buy_quantity, value, tax;
     unsigned int product_type = f->process.raw_material[index];
     Firm * supplier;
 
@@ -305,9 +309,11 @@ void firm_buy_raw_material_locally(Firm * f, Economy * e, unsigned int index, fl
             buy_quantity = f->capital.surplus / supplier->sale_value;
         }
 
-        f->capital.surplus -= supplier->sale_value * buy_quantity;
+        value = supplier->sale_value * buy_quantity;
+        f->capital.surplus -= value;
         if (f->capital.surplus < 0) f->capital.surplus = 0;
-        supplier->capital.surplus += supplier->sale_value * buy_quantity;
+        tax = value * e->state[supplier->location].VAT_rate / 100.0f;
+        supplier->capital.surplus += value - tax;
         f->process.raw_material_stock[index] += buy_quantity;
         supplier->process.stock -= buy_quantity;
         if (supplier->process.stock < 0) supplier->process.stock = 0;
