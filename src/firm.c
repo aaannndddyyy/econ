@@ -318,7 +318,7 @@ void firm_buy_raw_material_locally(Firm * f, Economy * e, unsigned int index, fl
     if (quantity < 1) return;
 
     best_index = econ_best_price(e, f, product_type, 1);
-    while ((best_index > -1) && (f->capital.surplus > 0) && (quantity > 0)) {
+    while ((best_index > -1) && (firm_working_capital(f) > 0) && (quantity > 0)) {
         supplier = &e->firm[best_index];
         quantity_available = supplier->process.stock;
         buy_quantity = quantity;
