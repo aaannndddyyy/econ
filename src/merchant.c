@@ -40,7 +40,8 @@ void merchant_init(Merchant * m)
     m->capital.repayment_per_month = 0;
     m->capital.variable = 0;
     m->capital.constant = 10;
-    m->capital.surplus = INITIAL_MERCHANT_DEPOSIT;
+    m->capital.surplus = 0;
+    m->capital.fictitious = INITIAL_MERCHANT_DEPOSIT;
     m->interest_rate = 2;
     m->hedge = MAX_PRODUCT_TYPES/2;
     for (i = 0; i < MAX_PRODUCT_TYPES; i++) {
@@ -50,13 +51,29 @@ void merchant_init(Merchant * m)
     clear_history(&m->capital);
 }
 
+float merchant_working_capital(Merchant * m)
+{
+    return m->capital.surplus + m->capital.fictitious;
+}
+
+void merchant_subtract_capital(Merchant * m, float amount)
+{
+    if (amount <= m->capital.surplus) {
+        m->capital.surplus -= amount;
+        return;
+    }
+    amount -= m->capital.surplus;
+    m->capital.surplus = 0;
+    m->capital.fictitious -= amount;
+}
+
 void merchant_buy(Economy * e)
 {
     unsigned int i;
     Merchant * m = &e->merchant;
     Firm * f;
     int best_index;
-    float investment_tranche = m->capital.surplus / (float)m->hedge;
+    float investment_tranche = merchant_working_capital(m) / (float)m->hedge;
     float buy_qty, target_price, variance, variance_min=0, variance_max=0;
     float average_variance, value, tax;
 
@@ -107,7 +124,7 @@ void merchant_buy(Economy * e)
                 m->stock[i] += buy_qty;
                 value = f->sale_value * buy_qty;
                 tax = value * e->state[f->location].VAT_rate / 100.0f;
-                m->capital.surplus -= value;
+                merchant_subtract_capital(m, value);
                 f->capital.surplus += value - tax;
             }
         }

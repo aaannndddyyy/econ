@@ -72,9 +72,26 @@ void firm_init(Firm * f)
     f->capital.repayment_per_month = 0;
     f->capital.variable = 0;
     f->capital.constant = 10;
-    f->capital.surplus = INITIAL_DEPOSIT;
+    f->capital.fictitious = INITIAL_DEPOSIT;
+    f->capital.surplus = 0;
     f->sale_value = 1.50f;
     clear_history(&f->capital);
+}
+
+float firm_working_capital(Firm * f)
+{
+    return f->capital.surplus + f->capital.fictitious;
+}
+
+void firm_subtract_capital(Firm * f, float amount)
+{
+    if (amount <= f->capital.surplus) {
+        f->capital.surplus -= amount;
+        return;
+    }
+    amount -= f->capital.surplus;
+    f->capital.surplus = 0;
+    f->capital.fictitious -= amount;
 }
 
 int firm_defunct(Firm * f)
@@ -209,13 +226,13 @@ void firm_obtain_loan(Firm * f, Economy * e)
 
 void firm_strategy(Firm * f, Economy * e)
 {
-    float possible_surplus, average_price, original_sale_value;
-    float existing_surplus = firm_surplus_per_day(f);
+    float possible_capital, average_price, original_sale_value;
+    float existing_capital = firm_surplus_per_day(f) + f->capital.fictitious;
     unsigned int workers;
 
     if (firm_defunct(f)) return;
 
-    if (existing_surplus < 0) {
+    if (existing_capital < 0) {
         firm_obtain_loan(f, e);
     }
 
@@ -223,9 +240,9 @@ void firm_strategy(Firm * f, Economy * e)
     if (f->labour.workers < MAX_WORKERS) {
         f->labour.is_recruiting = 0;
         f->labour.workers++;
-        possible_surplus = firm_surplus_per_day(f);
+        possible_capital = firm_surplus_per_day(f) + f->capital.fictitious;
         f->labour.workers--;
-        if (possible_surplus > existing_surplus) {
+        if (possible_capital > existing_capital) {
             f->labour.is_recruiting = 1;
         }
     }
@@ -252,7 +269,7 @@ void firm_strategy(Firm * f, Economy * e)
     if (average_price*1.05f < f->sale_value) {
         original_sale_value = f->sale_value;
         f->sale_value *= 0.99f;
-        if (firm_surplus_per_day(f) <= 0) {
+        if (firm_surplus_per_day(f) + f->capital.fictitious <= 0) {
             f->sale_value = original_sale_value;
         }
     }
@@ -260,7 +277,8 @@ void firm_strategy(Firm * f, Economy * e)
 
 float firm_worth(Firm * f)
 {
-    return f->capital.surplus + firm_variable_labour_per_day(f) + firm_constant_per_day(f);
+    return firm_working_capital(f) +
+        firm_variable_labour_per_day(f) + firm_constant_per_day(f);
 }
 
 void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int index, float quantity)
@@ -276,8 +294,8 @@ void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int ind
     if (m->stock[product_type] < buy_qty) {
         buy_qty = m->stock[product_type];
     }
-    if (buy_qty * m->price[product_type] > f->capital.surplus) {
-        buy_qty = f->capital.surplus / m->price[product_type];
+    if (buy_qty * m->price[product_type] > firm_working_capital(f)) {
+        buy_qty = firm_working_capital(f) / m->price[product_type];
     }
     if (buy_qty < 1) return;
     m->stock[product_type] -= buy_qty;
@@ -285,7 +303,7 @@ void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int ind
     value = buy_qty * m->price[product_type];
     tax = value * e->state[m->tax_location].VAT_rate / 100.0f;
     m->capital.surplus += value - tax;
-    f->capital.surplus -= value;
+    firm_subtract_capital(f, value);
     e->state[m->tax_location].capital.surplus += tax;
     if (f->capital.surplus < 0) f->capital.surplus = 0;
 }
@@ -305,13 +323,12 @@ void firm_buy_raw_material_locally(Firm * f, Economy * e, unsigned int index, fl
         quantity_available = supplier->process.stock;
         buy_quantity = quantity;
         if (buy_quantity > quantity_available) buy_quantity = quantity_available;
-        if (buy_quantity*supplier->sale_value > f->capital.surplus) {
-            buy_quantity = f->capital.surplus / supplier->sale_value;
+        if (buy_quantity*supplier->sale_value > firm_working_capital(f)) {
+            buy_quantity = firm_working_capital(f) / supplier->sale_value;
         }
 
         value = supplier->sale_value * buy_quantity;
-        f->capital.surplus -= value;
-        if (f->capital.surplus < 0) f->capital.surplus = 0;
+        firm_subtract_capital(f, value);
         tax = value * e->state[supplier->location].VAT_rate / 100.0f;
         supplier->capital.surplus += value - tax;
         f->process.raw_material_stock[index] += buy_quantity;

@@ -117,7 +117,7 @@ typedef struct
 {
     float repayment_per_month;
     float variable, constant;
-    float surplus;
+    float surplus, fictitious;
     float surplus_history[HISTORY_STEPS];
     float savings_rate;
 } Capital;
@@ -225,9 +225,13 @@ void firm_init(Firm * f);
 int firm_defunct(Firm * f);
 float firm_worth(Firm * f);
 void firm_update(Firm * f, Economy * e, unsigned int weeks);
+float firm_working_capital(Firm * f);
+void firm_subtract_capital(Firm * f, float amount);
 
 void merchant_init(Merchant * m);
 void merchant_update(Economy * e);
+float merchant_working_capital(Merchant * m);
+void merchant_subtract_capital(Merchant * m, float amount);
 
 void bank_init(Bank * b);
 int bank_defunct(Bank * b);
@@ -246,6 +250,8 @@ Bank * best_bank_for_loan(Economy * e);
 
 void state_init(State * s);
 void state_update(State * s, Economy * e, unsigned int weeks);
+float state_working_capital(State * s);
+void state_subtract_capital(State * s, float amount);
 
 void rentier_init(Rentier * r);
 void rentier_update(Rentier * r, Economy * e, unsigned int weeks);

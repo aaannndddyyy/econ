@@ -33,7 +33,8 @@
 
 void state_init(State * s)
 {
-    s->capital.surplus = INITIAL_STATE_DEPOSIT;
+    s->capital.fictitious = INITIAL_STATE_DEPOSIT;
+    s->capital.surplus = 0;
     s->capital.variable = 0;
     s->capital.constant = 0;
     s->capital.repayment_per_month = 0;
@@ -47,6 +48,22 @@ void state_init(State * s)
         ((rand()%10000/10000.0f)*(MAX_BUSINESS_TAX_RATE - MIN_BUSINESS_TAX_RATE));
     s->citizens_dividend = MIN_CITIZENS_DIVIDEND +
         ((rand()%10000/10000.0f)*(MAX_CITIZENS_DIVIDEND - MIN_CITIZENS_DIVIDEND));
+}
+
+float state_working_capital(State * s)
+{
+    return s->capital.surplus + s->capital.fictitious;
+}
+
+void state_subtract_capital(State * s, float amount)
+{
+    if (amount <= s->capital.surplus) {
+        s->capital.surplus -= amount;
+        return;
+    }
+    amount -= s->capital.surplus;
+    s->capital.surplus = 0;
+    s->capital.fictitious -= amount;
 }
 
 float state_spending(State * s, unsigned int weeks)
@@ -77,7 +94,7 @@ void state_update(State * s, Economy * e, unsigned int weeks)
 
     /* obtaining loans */
     if (s->capital.repayment_per_month == 0) {
-        if (state_spending(s, weeks) > s->capital.surplus) {
+        if (state_spending(s, weeks) > state_working_capital(s)) {
             best = best_bank_for_loan(e);
             if (best != NULL) {
                 index = state_index(s, e);
@@ -91,6 +108,6 @@ void state_update(State * s, Economy * e, unsigned int weeks)
     }
 
     /* spending */
-    s->capital.surplus -= state_spending(s, weeks);
+    state_subtract_capital(s, state_spending(s, weeks));
     update_history(&s->capital);
 }

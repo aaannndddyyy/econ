@@ -43,7 +43,8 @@ void bank_init(Bank * b)
     b->capital.repayment_per_month = 0;
     b->capital.variable = 0;
     b->capital.constant = 0;
-    b->capital.surplus = INITIAL_BANK_DEPOSIT;
+    b->capital.surplus = 0;
+    b->capital.fictitious = INITIAL_BANK_DEPOSIT;
     b->interest_deposit =
         MIN_BANK_INTEREST +
         ((rand()%10000/10000.0)*(MAX_BANK_INTEREST - MIN_BANK_INTEREST));
@@ -73,7 +74,7 @@ float bank_worth(Bank * b)
 {
     unsigned int i;
     Account * a;
-    float total = b->capital.surplus;
+    float total = b->capital.surplus + b->capital.fictitious;
 
     for (i = 0; i < MAX_ACCOUNTS; i++) {
         a = &b->account[i];
@@ -146,7 +147,7 @@ void bank_issue_loan(Bank * b, Economy * e,
 
     repayment_per_month = amount * 2 / ((float)repayment_days/30.0f);
 
-    b->capital.surplus -= amount;
+    b->capital.fictitious -= amount;
     b->account[account_index].entity_type = entity_type;
     b->account[account_index].entity_index = entity_index;
     b->account[account_index].balance = 0;
@@ -160,19 +161,19 @@ void bank_issue_loan(Bank * b, Economy * e,
     case ENTITY_FIRM: {
         firm_borrowing = &e->firm[entity_index];
         firm_borrowing->capital.repayment_per_month = repayment_per_month;
-        firm_borrowing->capital.surplus += amount;
+        firm_borrowing->capital.fictitious += amount;
         break;
     }
     case ENTITY_BANK: {
         bank_borrowing = &e->bank[entity_index];
         bank_borrowing->capital.repayment_per_month = repayment_per_month;
-        bank_borrowing->capital.surplus += amount;
+        bank_borrowing->capital.fictitious += amount;
         break;
     }
     case ENTITY_STATE: {
         state_borrowing = &e->state[entity_index];
         state_borrowing->capital.repayment_per_month = repayment_per_month;
-        state_borrowing->capital.surplus += amount;
+        state_borrowing->capital.fictitious += amount;
         break;
     }
     }
@@ -238,21 +239,23 @@ void bank_loan_repay(Bank * b, Economy * e, Account * a, unsigned int increment_
     case ENTITY_FIRM: {
         firm_borrowing = &e->firm[a->entity_index];
         firm_borrowing->capital.surplus -= repayment;
+		b->capital.surplus += repayment;
         break;
     }
     case ENTITY_BANK: {
         bank_borrowing = &e->bank[a->entity_index];
-        bank_borrowing->capital.surplus -= repayment;
+        bank_borrowing->capital.fictitious -= repayment;
+		b->capital.fictitious += repayment;
         break;
     }
     case ENTITY_STATE: {
         state_borrowing = &e->state[a->entity_index];
         state_borrowing->capital.surplus -= repayment;
+		b->capital.surplus += repayment;
         break;
     }
     }
     a->loan_repaid += repayment;
-    b->capital.surplus += repayment;
 }
 
 void bank_account_update(Bank * b, Economy * e, unsigned int account_index, unsigned int increment_days)
