@@ -162,10 +162,13 @@ void econ_startups(Economy * e)
     for (i = 0; i < e->size; i++) {
         f = &e->firm[i];
         if (firm_defunct(f)) {
+            firm_init(f);
             if (e->state[f->location].unemployed >= INITIAL_WORKERS) {
-                firm_init(f);
                 e->state[f->location].unemployed -= f->labour.workers;
                 if (e->bankruptcies > 0) e->bankruptcies--;
+            }
+            else {
+                f->labour.workers = 0;
             }
         }
     }
@@ -305,7 +308,7 @@ void econ_labour_market(Economy * e)
                     f->labour.is_recruiting = 0;
                     recruiting--;
                     e->state[l].unemployed--;
-					printf("e->state[l].unemployed %d\n",(int)e->state[l].unemployed);
+                    printf("e->state[l].unemployed %d\n",(int)e->state[l].unemployed);
                 }
                 if (recruiting == 0) break;
             }
