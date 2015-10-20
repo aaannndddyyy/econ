@@ -78,22 +78,6 @@ void firm_init(Firm * f)
     clear_history(&f->capital);
 }
 
-float firm_working_capital(Firm * f)
-{
-    return f->capital.surplus + f->capital.fictitious;
-}
-
-void firm_subtract_capital(Firm * f, float amount)
-{
-    if (amount <= f->capital.surplus) {
-        f->capital.surplus -= amount;
-        return;
-    }
-    amount -= f->capital.surplus;
-    f->capital.surplus = 0;
-    f->capital.fictitious -= amount;
-}
-
 int firm_defunct(Firm * f)
 {
     return (f->labour.workers == 0);
@@ -277,7 +261,7 @@ void firm_strategy(Firm * f, Economy * e)
 
 float firm_worth(Firm * f)
 {
-    return firm_working_capital(f) +
+    return working_capital(&f->capital) +
         firm_variable_labour_per_day(f) + firm_constant_per_day(f);
 }
 
@@ -294,8 +278,8 @@ void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int ind
     if (m->stock[product_type] < buy_qty) {
         buy_qty = m->stock[product_type];
     }
-    if (buy_qty * m->price[product_type] > firm_working_capital(f)) {
-        buy_qty = firm_working_capital(f) / m->price[product_type];
+    if (buy_qty * m->price[product_type] > working_capital(&f->capital)) {
+        buy_qty = working_capital(&f->capital) / m->price[product_type];
     }
     if (buy_qty < 1) return;
     m->stock[product_type] -= buy_qty;
@@ -303,7 +287,7 @@ void firm_buy_raw_material_from_merchant(Firm * f, Economy * e, unsigned int ind
     value = buy_qty * m->price[product_type];
     tax = value * e->state[m->tax_location].VAT_rate / 100.0f;
     m->capital.surplus += value - tax;
-    firm_subtract_capital(f, value);
+    subtract_capital(&f->capital, value);
     e->state[m->tax_location].capital.surplus += tax;
     if (f->capital.surplus < 0) f->capital.surplus = 0;
 }
@@ -318,17 +302,17 @@ void firm_buy_raw_material_locally(Firm * f, Economy * e, unsigned int index, fl
     if (quantity < 1) return;
 
     best_index = econ_best_price(e, f, product_type, 1);
-    while ((best_index > -1) && (firm_working_capital(f) > 0) && (quantity > 0)) {
+    while ((best_index > -1) && (working_capital(&f->capital) > 0) && (quantity > 0)) {
         supplier = &e->firm[best_index];
         quantity_available = supplier->process.stock;
         buy_quantity = quantity;
         if (buy_quantity > quantity_available) buy_quantity = quantity_available;
-        if (buy_quantity*supplier->sale_value > firm_working_capital(f)) {
-            buy_quantity = firm_working_capital(f) / supplier->sale_value;
+        if (buy_quantity*supplier->sale_value > working_capital(&f->capital)) {
+            buy_quantity = working_capital(&f->capital) / supplier->sale_value;
         }
 
         value = supplier->sale_value * buy_quantity;
-        firm_subtract_capital(f, value);
+        subtract_capital(&f->capital, value);
         tax = value * e->state[supplier->location].VAT_rate / 100.0f;
         supplier->capital.surplus += value - tax;
         f->process.raw_material_stock[index] += buy_quantity;

@@ -50,22 +50,6 @@ void state_init(State * s)
         ((rand()%10000/10000.0f)*(MAX_CITIZENS_DIVIDEND - MIN_CITIZENS_DIVIDEND));
 }
 
-float state_working_capital(State * s)
-{
-    return s->capital.surplus + s->capital.fictitious;
-}
-
-void state_subtract_capital(State * s, float amount)
-{
-    if (amount <= s->capital.surplus) {
-        s->capital.surplus -= amount;
-        return;
-    }
-    amount -= s->capital.surplus;
-    s->capital.surplus = 0;
-    s->capital.fictitious -= amount;
-}
-
 float state_spending(State * s, unsigned int weeks)
 {
     /* citizen's dividend is hourly, like wages */
@@ -94,7 +78,7 @@ void state_update(State * s, Economy * e, unsigned int weeks)
 
     /* obtaining loans */
     if (s->capital.repayment_per_month == 0) {
-        if (state_spending(s, weeks) > state_working_capital(s)) {
+        if (state_spending(s, weeks) > working_capital(&s->capital)) {
             best = best_bank_for_loan(e);
             if (best != NULL) {
                 index = state_index(s, e);
@@ -108,6 +92,6 @@ void state_update(State * s, Economy * e, unsigned int weeks)
     }
 
     /* spending */
-    state_subtract_capital(s, state_spending(s, weeks));
+    subtract_capital(&s->capital, state_spending(s, weeks));
     update_history(&s->capital);
 }

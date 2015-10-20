@@ -51,29 +51,13 @@ void merchant_init(Merchant * m)
     clear_history(&m->capital);
 }
 
-float merchant_working_capital(Merchant * m)
-{
-    return m->capital.surplus + m->capital.fictitious;
-}
-
-void merchant_subtract_capital(Merchant * m, float amount)
-{
-    if (amount <= m->capital.surplus) {
-        m->capital.surplus -= amount;
-        return;
-    }
-    amount -= m->capital.surplus;
-    m->capital.surplus = 0;
-    m->capital.fictitious -= amount;
-}
-
 void merchant_buy(Economy * e)
 {
     unsigned int i;
     Merchant * m = &e->merchant;
     Firm * f;
     int best_index;
-    float investment_tranche = merchant_working_capital(m) / (float)m->hedge;
+    float investment_tranche = working_capital(&m->capital) / (float)m->hedge;
     float buy_qty, target_price, variance, variance_min=0, variance_max=0;
     float average_variance, value, tax;
 
@@ -124,7 +108,7 @@ void merchant_buy(Economy * e)
                 m->stock[i] += buy_qty;
                 value = f->sale_value * buy_qty;
                 tax = value * e->state[f->location].VAT_rate / 100.0f;
-                merchant_subtract_capital(m, value);
+                subtract_capital(&m->capital, value);
                 f->capital.surplus += value - tax;
             }
         }

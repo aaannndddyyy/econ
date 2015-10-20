@@ -305,6 +305,7 @@ void econ_labour_market(Economy * e)
                     f->labour.is_recruiting = 0;
                     recruiting--;
                     e->state[l].unemployed--;
+					printf("e->state[l].unemployed %d\n",(int)e->state[l].unemployed);
                 }
                 if (recruiting == 0) break;
             }
@@ -372,7 +373,7 @@ int main(int argc, char* argv[])
         econ_update(&e, 1);
         printf("Profit: %.2f\n",e.firm[0].capital.surplus);
         printf("Bankrupt: %d/%d\n",e.bankruptcies,e.size);
-        printf("Unemployed: %d/%d\n",e.state[0].unemployed,e.state[0].population);
+        printf("Unemployed: %d/%d\n",(int)e.state[0].unemployed,e.state[0].population);
         printf("Merchant: ");
         for (j = 0; j < MAX_PRODUCT_TYPES; j++)  {
             printf("%d ", (int)e.merchant.stock[j]);
